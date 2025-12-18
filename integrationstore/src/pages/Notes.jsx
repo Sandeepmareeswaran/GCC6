@@ -1,8 +1,8 @@
+import React from 'react';
+import NotesFeatures from '../components/notes/notesfeautures';
+
 function Notes() {
-          return (
-                    <div>
-                              <h1>Notes</h1>
-                    </div>
-          );
+    return <NotesFeatures />;
 }
+
 export default Notes;
