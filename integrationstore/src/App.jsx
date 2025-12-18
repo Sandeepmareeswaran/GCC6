@@ -8,6 +8,7 @@ import Notes from './pages/Notes';
 import Sidenavbar from './components/Sidenavbar';
 import RegisterPopup from './components/RegisterPopup';
 import './App.css';
+import JiraPage from './pages/JiraPage';
 
 function App() {
   const [showRegister, setShowRegister] = useState(false);
@@ -34,6 +35,7 @@ function App() {
           <Route path="/mail" element={<Mail />} />
           <Route path="/todo" element={<ToDo />} />
           <Route path="/notes" element={<Notes />} />
+          <Route path="/jira" element={<JiraPage />} />
         </Routes>
       </main>
       <Sidenavbar />
