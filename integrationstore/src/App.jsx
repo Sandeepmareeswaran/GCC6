@@ -9,6 +9,7 @@ import Sidenavbar from './components/Sidenavbar';
 import RegisterPopup from './components/RegisterPopup';
 import './App.css';
 import JiraPage from './pages/JiraPage';
+import Inventory from './pages/Inventory';
 
 function App() {
   const [showRegister, setShowRegister] = useState(false);
@@ -36,6 +37,7 @@ function App() {
           <Route path="/todo" element={<ToDo />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/jira" element={<JiraPage />} />
+          <Route path="/Inventory" element={<Inventory />} />
         </Routes>
       </main>
       <Sidenavbar />
