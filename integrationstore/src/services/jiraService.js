@@ -90,6 +90,19 @@ export const getTransitions = async (issueKey) => {
           return response.json();
 };
 
+// Get available issue types for a project
+export const getIssueTypes = async (projectKey) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/issuetypes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...creds, projectKey })
+          });
+          return response.json();
+};
+
 // Transition an issue
 export const transitionIssue = async (issueKey, transitionId) => {
           const creds = getCredentials();
