@@ -20,7 +20,8 @@ function JiraPage() {
           const [issues, setIssues] = useState([]);
 
           const [showCreateModal, setShowCreateModal] = useState(false);
-          const [newIssue, setNewIssue] = useState({ summary: '', description: '', issueType: 'Task' });
+          const [newIssue, setNewIssue] = useState({ summary: '', description: '', issueType: '' });
+          const [issueTypes, setIssueTypes] = useState([]);
 
           const styles = {
                     container: {
@@ -378,11 +379,25 @@ function JiraPage() {
                     }
           };
 
-          const handleProjectChange = (e) => {
+          const handleProjectChange = async (e) => {
                     const projectKey = e.target.value;
                     setSelectedProject(projectKey);
-                    if (projectKey) loadIssues(projectKey);
-                    else setIssues([]);
+                    if (projectKey) {
+                              loadIssues(projectKey);
+                              // Fetch issue types for this project
+                              try {
+                                        const result = await jiraService.getIssueTypes(projectKey);
+                                        if (result.success && result.issueTypes.length > 0) {
+                                                  setIssueTypes(result.issueTypes);
+                                                  setNewIssue(prev => ({ ...prev, issueType: result.issueTypes[0].name }));
+                                        }
+                              } catch (err) {
+                                        console.error('Error fetching issue types:', err);
+                              }
+                    } else {
+                              setIssues([]);
+                              setIssueTypes([]);
+                    }
           };
 
           const handleCreateIssue = async (e) => {
@@ -393,7 +408,7 @@ function JiraPage() {
                               const result = await jiraService.createIssue(selectedProject, newIssue.summary, newIssue.description, newIssue.issueType);
                               if (result.success) {
                                         setShowCreateModal(false);
-                                        setNewIssue({ summary: '', description: '', issueType: 'Task' });
+                                        setNewIssue({ summary: '', description: '', issueType: issueTypes.length > 0 ? issueTypes[0].name : '' });
                                         loadIssues(selectedProject);
                               } else {
                                         setError('Failed to create issue');
@@ -501,7 +516,13 @@ function JiraPage() {
                                                                       <div style={styles.inputGroup}>
                                                                                 <label style={styles.label}>Issue Type</label>
                                                                                 <select style={styles.input} value={newIssue.issueType} onChange={(e) => setNewIssue({ ...newIssue, issueType: e.target.value })}>
-                                                                                          <option value="Task">Task</option><option value="Bug">Bug</option><option value="Story">Story</option>
+                                                                                          {issueTypes.length > 0 ? (
+                                                                                                    issueTypes.map(type => (
+                                                                                                              <option key={type.id} value={type.name}>{type.name}</option>
+                                                                                                    ))
+                                                                                          ) : (
+                                                                                                    <option value="Task">Task</option>
+                                                                                          )}
                                                                                 </select>
                                                                       </div>
                                                                       <div style={styles.inputGroup}>
