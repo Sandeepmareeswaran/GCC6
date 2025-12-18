@@ -1,1 +1,25 @@
-/* Cleaned up for IntegrationStore */
+/* IntegrationStore Base Styles */
+* {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+}
+
+body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          background: #0f0f23;
+          color: #fff;
+          min-height: 100vh;
+}
+
+.app-container {
+          display: flex;
+          min-height: 100vh;
+}
+
+.main-content {
+          flex: 1;
+          margin-left: 50px;
+          /* Space for fixed sidebar on left */
+          padding: 20px;
+}
