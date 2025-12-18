@@ -1,213 +1,356 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useGoogleLogin } from '@react-oauth/google';
+
+// Decode base64url body
+function decodeBody(encoded) {
+  if (!encoded) return '';
+  try {
+    return atob(encoded.replace(/-/g, '+').replace(/_/g, '/'));
+  } catch {
+    return encoded;
+  }
+}
+
+// Extract email address from "Name <email>" format
+function extractEmailAddress(headerValue) {
+  if (!headerValue) return '';
+  const match = headerValue.match(/<([^>]+)>/);
+  return match ? match[1] : headerValue;
+}
 
 function Mail() {
-          const [selectedFolder, setSelectedFolder] = useState('inbox');
+  const [accessToken, setAccessToken] = useState(null);
+  const [labels, setLabels] = useState([]);
+  const [selectedLabel, setSelectedLabel] = useState('INBOX');
+  const [filter, setFilter] = useState('all');
+  const [messages, setMessages] = useState([]);
+  const [selected, setSelected] = useState(null);
+  const [loading, setLoading] = useState(false);
+  
 
-          const styles = {
-                    container: {
-                              padding: '10px',
-                    },
-                    header: {
-                              marginBottom: '30px',
-                    },
-                    title: {
-                              fontSize: '28px',
-                              fontWeight: '700',
-                              color: '#1e1e2d',
-                              marginBottom: '5px',
-                    },
-                    subtitle: {
-                              fontSize: '14px',
-                              color: '#6b7280',
-                    },
-                    layout: {
-                              display: 'grid',
-                              gridTemplateColumns: '250px 1fr',
-                              gap: '20px',
-                    },
-                    sidebar: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '20px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                    },
-                    composeBtn: {
-                              width: '100%',
-                              padding: '14px',
-                              background: '#22c55e',
-                              border: 'none',
-                              borderRadius: '10px',
-                              color: '#fff',
-                              fontSize: '14px',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              marginBottom: '20px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              gap: '8px',
-                    },
-                    folderList: {
-                              listStyle: 'none',
-                              padding: 0,
-                              margin: 0,
-                    },
-                    folderItem: {
-                              padding: '12px 16px',
-                              borderRadius: '8px',
-                              cursor: 'pointer',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'space-between',
-                              marginBottom: '4px',
-                              transition: 'all 0.2s',
-                              fontSize: '14px',
-                              color: '#374151',
-                    },
-                    folderItemActive: {
-                              background: '#f0fdf4',
-                              color: '#16a34a',
-                              fontWeight: '600',
-                    },
-                    badge: {
-                              background: '#22c55e',
-                              color: '#fff',
-                              padding: '2px 8px',
-                              borderRadius: '10px',
-                              fontSize: '11px',
-                              fontWeight: '600',
-                    },
-                    mailList: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '20px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                    },
-                    mailItem: {
-                              padding: '16px',
-                              borderBottom: '1px solid #f3f4f6',
-                              cursor: 'pointer',
-                              transition: 'background 0.2s',
-                              display: 'flex',
-                              gap: '16px',
-                              alignItems: 'flex-start',
-                    },
-                    avatar: {
-                              width: '40px',
-                              height: '40px',
-                              borderRadius: '50%',
-                              background: '#22c55e',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              color: '#fff',
-                              fontWeight: '600',
-                              fontSize: '14px',
-                              flexShrink: 0,
-                    },
-                    mailContent: {
-                              flex: 1,
-                              minWidth: 0,
-                    },
-                    mailHeader: {
-                              display: 'flex',
-                              justifyContent: 'space-between',
-                              alignItems: 'center',
-                              marginBottom: '4px',
-                    },
-                    sender: {
-                              fontWeight: '600',
-                              color: '#1e1e2d',
-                              fontSize: '14px',
-                    },
-                    time: {
-                              fontSize: '12px',
-                              color: '#6b7280',
-                    },
-                    subject: {
-                              fontWeight: '500',
-                              color: '#374151',
-                              marginBottom: '4px',
-                              fontSize: '14px',
-                    },
-                    preview: {
-                              color: '#6b7280',
-                              fontSize: '13px',
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                    },
-                    emptyState: {
-                              textAlign: 'center',
-                              padding: '60px',
-                              color: '#6b7280',
-                    },
-          };
+  const login = useGoogleLogin({
+  scope: [
+    'https://www.googleapis.com/auth/gmail.readonly',
+    'https://www.googleapis.com/auth/gmail.send', // add send
+  ].join(' '),
+  onSuccess: (tokenResponse) => {
+    console.log('TOKEN RESPONSE', tokenResponse);
+    setAccessToken(tokenResponse.access_token);
+  },
+  onError: () => {
+    console.error('Login failed');
+  },
+});
 
-          const folders = [
-                    { id: 'inbox', name: 'Inbox', count: 12, icon: '📥' },
-                    { id: 'sent', name: 'Sent', count: 0, icon: '📤' },
-                    { id: 'drafts', name: 'Drafts', count: 3, icon: '📝' },
-                    { id: 'starred', name: 'Starred', count: 5, icon: '⭐' },
-                    { id: 'trash', name: 'Trash', count: 0, icon: '🗑️' },
-          ];
 
-          const emails = [
-                    { id: 1, sender: 'Team Jira', email: 'noreply@atlassian.com', subject: 'New issue assigned to you', preview: 'KAN-3 has been assigned to you. Please review the requirements...', time: '10:30 AM', unread: true },
-                    { id: 2, sender: 'GitHub', email: 'notifications@github.com', subject: 'Pull request merged', preview: 'Your pull request #42 has been merged into main branch...', time: '9:15 AM', unread: true },
-                    { id: 3, sender: 'Slack', email: 'notification@slack.com', subject: 'New message in #general', preview: 'John mentioned you in a message: Hey, can you check...', time: 'Yesterday', unread: false },
-                    { id: 4, sender: 'Firebase', email: 'noreply@firebase.google.com', subject: 'Your usage report', preview: 'Your monthly Firebase usage report is ready to view...', time: 'Yesterday', unread: false },
-          ];
+  useEffect(() => {
+    if (!accessToken) return;
+    loadLabels();
+  }, [accessToken]);
 
-          return (
-                    <div style={styles.container}>
-                              <div style={styles.header}>
-                                        <h1 style={styles.title}>Mail</h1>
-                                        <p style={styles.subtitle}>Manage your emails and communications</p>
-                              </div>
+  useEffect(() => {
+    if (!accessToken) return;
+    loadMessages();
+  }, [accessToken, selectedLabel, filter]);
 
-                              <div style={styles.layout}>
-                                        <div style={styles.sidebar}>
-                                                  <button style={styles.composeBtn}>
-                                                            <span>✏️</span> Compose
-                                                  </button>
-                                                  <ul style={styles.folderList}>
-                                                            {folders.map(folder => (
-                                                                      <li
-                                                                                key={folder.id}
-                                                                                style={{
-                                                                                          ...styles.folderItem,
-                                                                                          ...(selectedFolder === folder.id ? styles.folderItemActive : {}),
-                                                                                }}
-                                                                                onClick={() => setSelectedFolder(folder.id)}
-                                                                      >
-                                                                                <span>{folder.icon} {folder.name}</span>
-                                                                                {folder.count > 0 && <span style={styles.badge}>{folder.count}</span>}
-                                                                      </li>
-                                                            ))}
-                                                  </ul>
-                                        </div>
+  const loadLabels = async () => {
+    try {
+      const res = await fetch(
+        'https://gmail.googleapis.com/gmail/v1/users/me/labels',
+        {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        }
+      );
+      const data = await res.json();
+      console.log('LABELS RESPONSE', data);
+      if (!data.labels) {
+        setLabels([]);
+        return;
+      }
+      const wanted = data.labels.filter(
+        (l) =>
+          ['INBOX', 'SENT', 'DRAFT', 'SPAM', 'TRASH', 'STARRED', 'IMPORTANT'].includes(
+            l.id
+          ) || l.type === 'user'
+      );
+      setLabels(wanted);
+    } catch (e) {
+      console.error('Error loading labels', e);
+    }
+  };
 
-                                        <div style={styles.mailList}>
-                                                  {emails.map(email => (
-                                                            <div key={email.id} style={{ ...styles.mailItem, background: email.unread ? '#f0fdf4' : 'transparent' }}>
-                                                                      <div style={styles.avatar}>{email.sender[0]}</div>
-                                                                      <div style={styles.mailContent}>
-                                                                                <div style={styles.mailHeader}>
-                                                                                          <span style={styles.sender}>{email.sender}</span>
-                                                                                          <span style={styles.time}>{email.time}</span>
-                                                                                </div>
-                                                                                <div style={styles.subject}>{email.subject}</div>
-                                                                                <div style={styles.preview}>{email.preview}</div>
-                                                                      </div>
-                                                            </div>
-                                                  ))}
-                                        </div>
-                              </div>
+  const buildListUrl = () => {
+    const base =
+      'https://gmail.googleapis.com/gmail/v1/users/me/messages?maxResults=25';
+    const params = [];
+
+    if (selectedLabel) {
+      params.push(`labelIds=${encodeURIComponent(selectedLabel)}`);
+    }
+
+    if (filter === 'unread') {
+      params.push('q=' + encodeURIComponent('is:unread'));
+    } else if (filter === 'spam') {
+      params.push('q=' + encodeURIComponent('in:spam'));
+    } else if (filter === 'starred') {
+      params.push('q=' + encodeURIComponent('is:starred'));
+    }
+
+    if (!params.length) return base;
+    return base + '&' + params.join('&');
+  };
+
+  const loadMessages = async () => {
+    setLoading(true);
+    setSelected(null);
+    try {
+      const url = buildListUrl();
+      console.log('LIST URL', url);
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      const data = await res.json();
+      console.log('LIST RESPONSE', data);
+
+      if (!data.messages || !data.messages.length) {
+        setMessages([]);
+        return;
+      }
+
+      const detailed = await Promise.all(
+  data.messages.map(async (m) => {
+    const r = await fetch(
+      `https://gmail.googleapis.com/gmail/v1/users/me/messages/${m.id}?format=full`,
+      { headers: { Authorization: `Bearer ${accessToken}` } }
+    );
+    return r.json();
+  })
+);
+
+      setMessages(detailed);
+    } catch (e) {
+      console.error('Error loading messages', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMessageDetail = async (id) => {
+    setLoading(true);
+    try {
+      const res = await fetch(
+        `https://gmail.googleapis.com/gmail/v1/users/me/messages/${id}?format=full`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+      const data = await res.json();
+      console.log('MESSAGE DETAIL', data);
+      setSelected(data);
+    } catch (e) {
+      console.error('Error loading message detail', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!accessToken) {
+    return (
+      <div style={{ padding: '24px', color: '#fff' }}>
+        <h1>Mail</h1>
+        <h2>Connect your Gmail</h2>
+        <p>Click below to sign in and load your inbox.</p>
+        <button
+          onClick={() => login()}
+          style={{
+            padding: '8px 16px',
+            borderRadius: '4px',
+            border: 'none',
+            background: '#4285f4',
+            color: '#fff',
+            cursor: 'pointer',
+          }}
+        >
+          Sign in with Google
+        </button>
+      </div>
+    );
+  }
+
+  const getHeader = (msg, name) =>
+    msg.payload?.headers?.find((h) => h.name === name)?.value || '';
+
+  return (
+    <div style={{ display: 'flex', height: '100vh', color: '#fff' }}>
+      {/* Left: labels + filters */}
+      <div style={{ width: '220px', borderRight: '1px solid #333', padding: '16px' }}>
+        <h2 style={{ marginBottom: '12px' }}>Folders</h2>
+        {labels.map((label) => (
+          <div
+            key={label.id}
+            onClick={() => setSelectedLabel(label.id)}
+            style={{
+              padding: '6px 8px',
+              marginBottom: '4px',
+              cursor: 'pointer',
+              borderRadius: '6px',
+              background:
+                selectedLabel === label.id ? '#444' : 'transparent',
+            }}
+          >
+            {label.name}
+          </div>
+        ))}
+
+        <h3 style={{ marginTop: '20px' }}>Filter</h3>
+        {['all', 'unread', 'starred', 'spam'].map((f) => (
+          <div
+            key={f}
+            onClick={() => setFilter(f)}
+            style={{
+              padding: '4px 8px',
+              cursor: 'pointer',
+              borderRadius: '6px',
+              background: filter === f ? '#555' : 'transparent',
+              textTransform: 'capitalize',
+              fontSize: '14px',
+            }}
+          >
+            {f}
+          </div>
+        ))}
+      </div>
+
+      {/* Middle + right */}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '16px', borderBottom: '1px solid #333' }}>
+          <h1>Mail</h1>
+          <p>
+            Label: {selectedLabel} | Filter: {filter}
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', flex: 1 }}>
+          {/* Message list */}
+          <div
+            style={{
+              flex: 1,
+              maxWidth: '40%',
+              borderRight: '1px solid #333',
+              overflowY: 'auto',
+            }}
+          >
+            {loading && <p style={{ padding: '12px' }}>Loading…</p>}
+            {!loading && !messages.length && (
+              <p style={{ padding: '12px' }}>No emails found.</p>
+            )}
+
+            {!loading &&
+              messages.map((m) => {
+                // Determine which email to display as the main line
+                const getMetadataHeader = (headerName) => {
+                  return m.payload?.headers?.find((h) => h.name === headerName)?.value || '';
+                };
+
+                let mainEmail = '';
+                if (selectedLabel === 'SENT' || selectedLabel === 'DRAFT') {
+                  mainEmail = extractEmailAddress(getMetadataHeader('To'));
+                } else {
+                  mainEmail = extractEmailAddress(getMetadataHeader('From'));
+                }
+
+                return (
+                  <div
+                    key={m.id}
+                    onClick={() => loadMessageDetail(m.id)}
+                    style={{
+                      padding: '10px 12px',
+                      borderBottom: '1px solid #333',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <div style={{ fontWeight: 'bold', fontSize: '14px', color: '#fff' }}>
+                      {mainEmail || '(No email)'}
                     </div>
-          );
+                    <div style={{ fontSize: '12px', color: '#bbb', marginTop: '4px' }}>
+                      {m.payload?.headers?.find((h) => h.name === 'Subject')?.value || '(No subject)'}
+                    </div>
+                    <div style={{ fontSize: '11px', color: '#777' }}>
+                      {m.payload?.headers?.find((h) => h.name === 'Date')?.value || ''}
+                    </div>
+                  </div>
+                );
+              })}
+          </div>
+
+          {/* Message preview */}
+          <div style={{ flex: 1.5, padding: '16px', overflowY: 'auto' }}>
+            {selected ? (
+              <SelectedView message={selected} />
+            ) : (
+              <p>Select an email to view.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
 }
+
+function SelectedView({ message }) {
+  const headers = message.payload?.headers || [];
+  const findHeader = (name) =>
+    headers.find((h) => h.name === name)?.value || '';
+  const subject = findHeader('Subject') || '(No subject)';
+  const from = findHeader('From');
+  const to = findHeader('To');
+  const date = findHeader('Date');
+
+  let body = '';
+  let isHtml = false;
+
+  if (message.payload?.parts?.length) {
+    for (const part of message.payload.parts) {
+      if (part.mimeType === 'text/html' && part.body?.data) {
+        body = decodeBody(part.body.data);
+        isHtml = true;
+        break;
+      }
+      if (!body && part.mimeType === 'text/plain' && part.body?.data) {
+        body = decodeBody(part.body.data);
+      }
+    }
+  } else if (message.payload?.body?.data) {
+    body = decodeBody(message.payload.body.data);
+  }
+
+  return (
+    <div>
+      <h2>{subject}</h2>
+      <div style={{ fontSize: '12px', color: '#aaa' }}>
+        <div>From: {extractEmailAddress(from)}</div>
+        <div>To: {extractEmailAddress(to)}</div>
+        <div>Date: {date}</div>
+      </div>
+      <hr />
+      {isHtml ? (
+        <iframe
+          title="email-body"
+          style={{ width: '100%', height: '60vh', border: 'none' }}
+          srcDoc={body}
+        />
+      ) : (
+        <pre
+          style={{
+            whiteSpace: 'pre-wrap',
+            fontFamily: 'inherit',
+            marginTop: '12px',
+          }}
+        >
+          {body}
+        </pre>
+      )}
+    </div>
+  );
+}
+
 
 export default Mail;
