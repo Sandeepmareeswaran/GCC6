@@ -8,6 +8,7 @@ import Notes from './pages/Notes';
 import Sidenavbar from './components/Sidenavbar';
 import RegisterPopup from './components/RegisterPopup';
 import './App.css';
+import RightToolbar from './components/RightToolbar';
 import JiraPage from './pages/JiraPage';
 import Inventory from './pages/Inventory';
 import Slackpage from './pages/Slackpage';
@@ -44,6 +45,7 @@ function App() {
         </Routes>
       </main>
       <Sidenavbar />
+      <RightToolbar />
     </div>
   );
 }
