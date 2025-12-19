@@ -1,0 +1,157 @@
+.todo-root{
+  height:100%;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+  color:#e6eef8;
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+.todo-toolbar{
+  padding:12px 16px;
+  font-size:18px;
+  font-weight:600;
+  color:#fff;
+}
+.todo-toolbar{display:flex;justify-content:space-between;align-items:center}
+.toolbar-actions{display:flex;gap:10px}
+.add-btn{background:#2b2b2b;color:#fff;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.add-form{display:flex;gap:8px;padding:8px 12px;background:rgba(255,255,255,0.02);border-radius:6px;margin:0 12px 8px 12px;align-items:center}
+.add-form input,.add-form select{background:#0f1113;border:1px solid rgba(255,255,255,0.04);color:#e6eef8;padding:8px;border-radius:4px}
+.add-form input[type="date"]{padding:6px}
+.add-submit{background:#3ad29f;color:#07211a;padding:8px 12px;border-radius:6px;border:0;cursor:pointer}
+.add-cancel{background:transparent;color:#e6eef8;padding:8px 12px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+
+.card-actions{display:flex;gap:6px;margin-top:8px}
+.card-btn{background:transparent;border:1px solid rgba(255,255,255,0.04);color:#cfd8e3;padding:6px 8px;border-radius:4px;cursor:pointer;font-size:12px}
+.card-btn.danger{border-color:rgba(255,80,80,0.15);color:#ff8b94}
+.board-wrap{
+  display:flex;
+  gap:12px;
+  padding:12px;
+  overflow-x:auto;
+}
+.board-column{
+  width:220px;
+  min-width:220px;
+  background:transparent;
+  border-radius:6px;
+  display:flex;
+  flex-direction:column;
+  max-height:78vh;
+}
+.column-header{
+  background:rgba(255,255,255,0.02);
+  padding:10px;
+  border-radius:6px 6px 0 0;
+  border-top:6px solid #666;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  font-weight:600;
+  font-size:13px;
+}
+.col-header-right{display:flex;align-items:center;gap:8px}
+.col-add-btn{width:28px;height:28px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:#e6eef8;font-weight:700;cursor:pointer}
+.mini-form{display:flex;gap:8px;padding:8px 10px;background:rgba(255,255,255,0.01);border-radius:6px;margin:6px 4px}
+.mini-form input{background:#0f1113;border:1px solid rgba(255,255,255,0.04);color:#e6eef8;padding:6px;border-radius:4px}
+.mini-actions{display:flex;gap:6px;align-items:center}
+.mini-add{background:#3ad29f;color:#07211a;padding:6px 10px;border-radius:6px;border:0;cursor:pointer}
+.mini-cancel{background:transparent;color:#e6eef8;padding:6px 10px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+
+/* modal */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.6);display:flex;align-items:center;justify-content:center;z-index:50}
+.modal-panel{width:820px;max-width:95%;background:#121218;border-radius:8px;padding:16px;border:1px solid rgba(255,255,255,0.03);box-shadow:0 10px 30px rgba(0,0,0,0.6)}
+.modal-header{display:flex;justify-content:space-between;gap:12px;align-items:center}
+.modal-header label{font-size:12px;color:#9aa6b2}
+.modal-status select{background:#0f1113;color:#e6eef8;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.modal-dates input{background:#0f1113;color:#e6eef8;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.modal-body{margin-top:12px;display:flex;flex-direction:column;gap:8px}
+.modal-title{font-size:18px;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03);background:#0f1113;color:#e6eef8}
+.modal-row input{background:#0f1113;color:#e6eef8;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.modal-body textarea{background:#0f1113;color:#e6eef8;padding:8px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.subtasks{background:transparent;padding:8px;border-radius:6px}
+.subtasks-header{font-weight:600;color:#cbd6df;margin-bottom:6px}
+.subtask-row{display:flex;align-items:center;gap:8px;padding:6px 0}
+.subtask-title{flex:1;color:#cbd6df}
+.subtask-remove{background:transparent;border:0;color:#ff8b94;cursor:pointer}
+.subtask-add{display:flex;gap:8px;align-items:center}
+.subtask-add input{flex:1;background:#0f1113;color:#e6eef8;padding:6px;border-radius:6px;border:1px solid rgba(255,255,255,0.03)}
+.subtask-add button{background:#3ad29f;color:#07211a;padding:6px 10px;border-radius:6px;border:0}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:12px}
+.btn{background:#3ad29f;color:#07211a;padding:8px 12px;border-radius:6px;border:0;cursor:pointer}
+.btn.ghost{background:transparent;color:#e6eef8;border:1px solid rgba(255,255,255,0.03)}
+.column-body{
+  margin-top:8px;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  overflow-y:auto;
+  padding:8px 4px 12px 4px;
+}
+.todo-card{
+  background: #121212;
+  border:1px solid rgba(255,255,255,0.14);
+  padding:10px;
+  border-radius:6px;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.02) inset;
+  cursor:grab;
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 120ms ease;
+}
+.todo-card:active{cursor:grabbing}
+.todo-card:hover{
+  border-color: rgba(255,255,255,0.18);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.65);
+  transform: translateY(-3px);
+}
+.card-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:8px;
+}
+.badge{
+  background:#ff4757;
+  color:white;
+  font-size:11px;
+  padding:4px 6px;
+  border-radius:5px;
+  display:inline-block;
+}
+.owner{
+  font-size:11px;
+  color:#9be7c4;
+}
+.card-title{
+  margin-top:8px;
+  font-size:14px;
+  color:#e6eef8;
+}
+.card-date{
+  margin-top:6px;
+  font-size:12px;
+  color:#9aa6b2;
+}
+
+.card-created, .card-updated {
+  margin-top:8px;
+  font-size:12px;
+  color:#cbd6df;
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+.card-clock, .modal-clock { opacity:0.9 }
+.card-expanded{margin-top:8px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.02)}
+.card-desc{color:#cbd6df;font-size:13px;margin-bottom:8px}
+.card-subtasks{display:flex;flex-direction:column;gap:6px}
+.card-subtasks .subtask-row{padding:4px 0}
+.modal-created, .modal-updated{font-size:13px;color:#cbd6df;margin-top:8px;display:flex;align-items:center;gap:8px}
+
+/* scrollbar tweaks */
+.column-body::-webkit-scrollbar{width:8px}
+.column-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.04);border-radius:6px}
+
+/* page background to give dark app look */
+body, #root {
+  background:#0f1113;
+}

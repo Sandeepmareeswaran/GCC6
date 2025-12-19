@@ -11,6 +11,7 @@ import './App.css';
 import JiraPage from './pages/JiraPage';
 import Inventory from './pages/Inventory';
 import Slackpage from './pages/Slackpage';
+import Sales from './pages/Sales';
 
 function App() {
   const [showRegister, setShowRegister] = useState(false);
@@ -40,6 +41,7 @@ function App() {
           <Route path="/jira" element={<JiraPage />} />
           <Route path="/Inventory" element={<Inventory />} />
           <Route path="/slack" element={<Slackpage />} />
+          <Route path="/Sales" element={<Sales />} />
         </Routes>
       </main>
       <Sidenavbar />
