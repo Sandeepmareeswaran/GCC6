@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:5000/api/jira';
+const API_BASE = 'https://jira-api.outliersunited.com/api/jira';
+
 
 // Get credentials from localStorage
 const getCredentials = () => {
@@ -90,6 +91,32 @@ export const getTransitions = async (issueKey) => {
           return response.json();
 };
 
+// Get available issue types for a project
+export const getIssueTypes = async (projectKey) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/issuetypes`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...creds, projectKey })
+          });
+          return response.json();
+};
+
+// Get available statuses for a project
+export const getStatuses = async (projectKey) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/statuses`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...creds, projectKey })
+          });
+          return response.json();
+};
+
 // Transition an issue
 export const transitionIssue = async (issueKey, transitionId) => {
           const creds = getCredentials();
@@ -99,6 +126,58 @@ export const transitionIssue = async (issueKey, transitionId) => {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ ...creds, issueKey, transitionId })
+          });
+          return response.json();
+};
+
+// Get issue detail
+export const getIssueDetail = async (issueKey) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/issue/${issueKey}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(creds)
+          });
+          return response.json();
+};
+
+// Update issue
+export const updateIssue = async (issueKey, updates) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/issue/${issueKey}/update`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...creds, updates })
+          });
+          return response.json();
+};
+
+// Get assignable users for a project
+export const getUsers = async (projectKey) => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/users`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ ...creds, projectKey })
+          });
+          return response.json();
+};
+
+// Get available priorities
+export const getPriorities = async () => {
+          const creds = getCredentials();
+          if (!creds) throw new Error('Not connected to Jira');
+
+          const response = await fetch(`${API_BASE}/priorities`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(creds)
           });
           return response.json();
 };

@@ -114,11 +114,11 @@ def get_issues():
         url = f"https://{domain}/rest/api/3/search/jql"
         headers = get_auth_header(email, api_token)
         
-        # New API uses POST with JSON body
+        # Fetch additional fields for enhanced display
         payload = {
             "jql": f"project={project_key} ORDER BY created DESC",
-            "maxResults": 50,
-            "fields": ["summary", "status", "priority", "assignee", "issuetype", "created"]
+            "maxResults": 100,
+            "fields": ["summary", "status", "priority", "assignee", "issuetype", "created", "duedate"]
         }
         
         print(f"Fetching issues for project: {project_key}")
@@ -136,15 +136,31 @@ def get_issues():
                 fields = issue.get("fields", {})
                 status_obj = fields.get("status") or {}
                 status_category = status_obj.get("statusCategory") or {}
+                priority_obj = fields.get("priority") or {}
+                assignee_obj = fields.get("assignee") or {}
+                issuetype_obj = fields.get("issuetype") or {}
+                
+                # Get avatar URL if available
+                avatar_url = None
+                if assignee_obj:
+                    avatar_urls = assignee_obj.get("avatarUrls", {})
+                    avatar_url = avatar_urls.get("24x24") or avatar_urls.get("48x48")
+                
                 issues.append({
                     "key": issue.get("key"),
                     "summary": fields.get("summary"),
                     "status": status_obj.get("name", "Unknown"),
+                    "statusId": status_obj.get("id"),
                     "statusCategory": status_category.get("key", "new"),
-                    "priority": fields.get("priority", {}).get("name") if fields.get("priority") else None,
-                    "assignee": fields.get("assignee", {}).get("displayName") if fields.get("assignee") else "Unassigned",
-                    "issueType": fields.get("issuetype", {}).get("name") if fields.get("issuetype") else "Task",
-                    "created": fields.get("created")
+                    "statusCategoryName": status_category.get("name", "To Do"),
+                    "priority": priority_obj.get("name") if priority_obj else None,
+                    "priorityId": priority_obj.get("id") if priority_obj else None,
+                    "assignee": assignee_obj.get("displayName") if assignee_obj else "Unassigned",
+                    "assigneeAvatar": avatar_url,
+                    "issueType": issuetype_obj.get("name") if issuetype_obj else "Task",
+                    "issueTypeIcon": issuetype_obj.get("iconUrl") if issuetype_obj else None,
+                    "created": fields.get("created"),
+                    "dueDate": fields.get("duedate")
                 })
             print(f"Found {len(issues)} issues")
             return jsonify({"success": True, "issues": issues, "total": result.get("total", 0)})
@@ -157,6 +173,181 @@ def get_issues():
     except Exception as e:
         print(f"Exception: {str(e)}")
         return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/issue/<issue_key>', methods=['POST'])
+def get_issue_detail(issue_key):
+    """Get full details of a single issue"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    
+    domain = clean_domain(domain)
+    
+    try:
+        url = f"https://{domain}/rest/api/3/issue/{issue_key}"
+        headers = get_auth_header(email, api_token)
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            issue = response.json()
+            fields = issue.get("fields", {})
+            
+            # Parse description from Atlassian Document Format
+            description = ""
+            desc_field = fields.get("description")
+            if desc_field and isinstance(desc_field, dict):
+                content = desc_field.get("content", [])
+                for block in content:
+                    if block.get("type") == "paragraph":
+                        for text_node in block.get("content", []):
+                            if text_node.get("type") == "text":
+                                description += text_node.get("text", "")
+                        description += "\n"
+            
+            status_obj = fields.get("status") or {}
+            priority_obj = fields.get("priority") or {}
+            assignee_obj = fields.get("assignee") or {}
+            reporter_obj = fields.get("reporter") or {}
+            issuetype_obj = fields.get("issuetype") or {}
+            
+            return jsonify({
+                "success": True,
+                "issue": {
+                    "key": issue.get("key"),
+                    "id": issue.get("id"),
+                    "summary": fields.get("summary"),
+                    "description": description.strip(),
+                    "status": status_obj.get("name", "Unknown"),
+                    "statusId": status_obj.get("id"),
+                    "priority": priority_obj.get("name") if priority_obj else None,
+                    "assignee": assignee_obj.get("displayName") if assignee_obj else "Unassigned",
+                    "assigneeEmail": assignee_obj.get("emailAddress") if assignee_obj else None,
+                    "assigneeAvatar": assignee_obj.get("avatarUrls", {}).get("48x48") if assignee_obj else None,
+                    "reporter": reporter_obj.get("displayName") if reporter_obj else "Unknown",
+                    "reporterAvatar": reporter_obj.get("avatarUrls", {}).get("48x48") if reporter_obj else None,
+                    "issueType": issuetype_obj.get("name") if issuetype_obj else "Task",
+                    "created": fields.get("created"),
+                    "updated": fields.get("updated"),
+                    "dueDate": fields.get("duedate"),
+                    "labels": fields.get("labels", []),
+                }
+            })
+        else:
+            return jsonify({"error": "Failed to fetch issue"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/issue/<issue_key>/update', methods=['POST'])
+def update_issue(issue_key):
+    """Update issue fields"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    updates = data.get('updates', {})
+    
+    domain = clean_domain(domain)
+    
+    try:
+        url = f"https://{domain}/rest/api/3/issue/{issue_key}"
+        headers = get_auth_header(email, api_token)
+        
+        # Build update payload
+        fields = {}
+        if 'summary' in updates:
+            fields['summary'] = updates['summary']
+        if 'description' in updates:
+            fields['description'] = {
+                "type": "doc",
+                "version": 1,
+                "content": [{
+                    "type": "paragraph",
+                    "content": [{"type": "text", "text": updates['description'] or "No description"}]
+                }]
+            }
+        if 'duedate' in updates:
+            fields['duedate'] = updates['duedate'] if updates['duedate'] else None
+        if 'assignee' in updates:
+            if updates['assignee']:
+                fields['assignee'] = {"accountId": updates['assignee']}
+            else:
+                fields['assignee'] = None
+        if 'priority' in updates:
+            fields['priority'] = {"id": updates['priority']}
+            
+        payload = {"fields": fields}
+        
+        response = requests.put(url, headers=headers, json=payload)
+        
+        if response.status_code == 204:
+            return jsonify({"success": True})
+        else:
+            error_data = response.json() if response.text else {}
+            return jsonify({"error": error_data.get("errorMessages", ["Update failed"])[0] if error_data.get("errorMessages") else "Update failed", "details": response.text}), response.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/users', methods=['POST'])
+def get_users():
+    """Get assignable users for a project"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    project_key = data.get('projectKey')
+    
+    domain = clean_domain(domain)
+    
+    try:
+        url = f"https://{domain}/rest/api/3/user/assignable/search?project={project_key}"
+        headers = get_auth_header(email, api_token)
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            users = response.json()
+            return jsonify({
+                "success": True,
+                "users": [{
+                    "accountId": u.get("accountId"),
+                    "displayName": u.get("displayName"),
+                    "emailAddress": u.get("emailAddress"),
+                    "avatarUrl": u.get("avatarUrls", {}).get("24x24")
+                } for u in users]
+            })
+        else:
+            return jsonify({"error": "Failed to fetch users"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/priorities', methods=['POST'])
+def get_priorities():
+    """Get available priorities"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    
+    domain = clean_domain(domain)
+    
+    try:
+        url = f"https://{domain}/rest/api/3/priority"
+        headers = get_auth_header(email, api_token)
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            priorities = response.json()
+            return jsonify({
+                "success": True,
+                "priorities": [{
+                    "id": p.get("id"),
+                    "name": p.get("name"),
+                    "iconUrl": p.get("iconUrl")
+                } for p in priorities]
+            })
+        else:
+            return jsonify({"error": "Failed to fetch priorities"}), response.status_code
+    except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @app.route('/api/jira/issues/create', methods=['POST'])
@@ -174,9 +365,14 @@ def create_issue():
     # Clean the domain
     domain = clean_domain(domain)
     
+    print(f"Creating issue - Project: {project_key}, Type: {issue_type}, Summary: {summary}")
+    
     try:
         url = f"https://{domain}/rest/api/3/issue"
         headers = get_auth_header(email, api_token)
+        
+        # Build payload - handle empty description
+        desc_content = description if description else "No description"
         payload = {
             "fields": {
                 "project": {"key": project_key},
@@ -186,13 +382,18 @@ def create_issue():
                     "version": 1,
                     "content": [{
                         "type": "paragraph",
-                        "content": [{"type": "text", "text": description}]
+                        "content": [{"type": "text", "text": desc_content}]
                     }]
                 },
                 "issuetype": {"name": issue_type}
             }
         }
+        
+        print(f"Payload: {payload}")
         response = requests.post(url, headers=headers, json=payload)
+        
+        print(f"Create issue response status: {response.status_code}")
+        print(f"Create issue response: {response.text}")
         
         if response.status_code == 201:
             result = response.json()
@@ -204,7 +405,92 @@ def create_issue():
                 }
             })
         else:
-            return jsonify({"error": response.text}), response.status_code
+            # Return the actual Jira error message
+            error_data = response.json() if response.text else {}
+            error_messages = error_data.get("errorMessages", [])
+            errors = error_data.get("errors", {})
+            return jsonify({
+                "error": error_messages[0] if error_messages else "Failed to create issue",
+                "errors": errors,
+                "details": response.text
+            }), response.status_code
+    except Exception as e:
+        print(f"Exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/issuetypes', methods=['POST'])
+def get_issue_types():
+    """Get available issue types for a project"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    project_key = data.get('projectKey')
+    
+    # Clean the domain
+    domain = clean_domain(domain)
+    
+    try:
+        # Get project details which includes issue types
+        url = f"https://{domain}/rest/api/3/project/{project_key}"
+        headers = get_auth_header(email, api_token)
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            project = response.json()
+            issue_types = project.get("issueTypes", [])
+            return jsonify({
+                "success": True,
+                "issueTypes": [{
+                    "id": it.get("id"),
+                    "name": it.get("name"),
+                    "description": it.get("description", ""),
+                    "subtask": it.get("subtask", False)
+                } for it in issue_types if not it.get("subtask", False)]
+            })
+        else:
+            return jsonify({"error": "Failed to fetch issue types"}), response.status_code
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/jira/statuses', methods=['POST'])
+def get_statuses():
+    """Get available statuses for a project"""
+    data = request.json
+    email = data.get('email')
+    api_token = data.get('apiToken')
+    domain = data.get('domain')
+    project_key = data.get('projectKey')
+    
+    # Clean the domain
+    domain = clean_domain(domain)
+    
+    try:
+        # Get project statuses
+        url = f"https://{domain}/rest/api/3/project/{project_key}/statuses"
+        headers = get_auth_header(email, api_token)
+        response = requests.get(url, headers=headers)
+        
+        if response.status_code == 200:
+            result = response.json()
+            # Collect unique statuses from all issue types
+            statuses = []
+            seen_ids = set()
+            for issuetype in result:
+                for status in issuetype.get("statuses", []):
+                    if status.get("id") not in seen_ids:
+                        seen_ids.add(status.get("id"))
+                        category = status.get("statusCategory", {})
+                        statuses.append({
+                            "id": status.get("id"),
+                            "name": status.get("name"),
+                            "categoryKey": category.get("key"),
+                            "categoryName": category.get("name"),
+                            "categoryColor": category.get("colorName")
+                        })
+            return jsonify({"success": True, "statuses": statuses})
+        else:
+            return jsonify({"error": "Failed to fetch statuses"}), response.status_code
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -264,4 +550,4 @@ def get_transitions(issue_key):
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
-    app.run(debug=True, port=5000)
+    app.run(debug=True, host='0.0.0.0', port=5009)
