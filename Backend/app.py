@@ -549,5 +549,509 @@ def get_transitions(issue_key):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# ================= SLACK INTEGRATION =================
+
+SLACK_API_BASE = "https://slack.com/api"
+
+def get_slack_headers(bot_token):
+    """Create authorization header for Slack API"""
+    return {
+        "Authorization": f"Bearer {bot_token}",
+        "Content-Type": "application/json"
+    }
+
+@app.route('/api/slack/connect', methods=['POST'])
+def slack_connect():
+    """Test Slack connection with bot token"""
+    data = request.json
+    bot_token = data.get('botToken')
+    
+    if not bot_token or not bot_token.startswith('xoxb-'):
+        return jsonify({"error": "Invalid bot token. Must start with xoxb-"}), 400
+    
+    try:
+        # Test connection by getting bot info
+        url = f"{SLACK_API_BASE}/auth.test"
+        headers = get_slack_headers(bot_token)
+        response = requests.post(url, headers=headers)
+        result = response.json()
+        
+        if result.get("ok"):
+            return jsonify({
+                "success": True,
+                "team": result.get("team"),
+                "user": result.get("user"),
+                "teamId": result.get("team_id"),
+                "userId": result.get("user_id")
+            })
+        else:
+            return jsonify({"error": result.get("error", "Connection failed")}), 401
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/channels', methods=['POST'])
+def slack_get_channels():
+    """Get list of Slack channels"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    
+    if not bot_token:
+        return jsonify({"error": "No bot token provided"}), 400
+    
+    try:
+        url = f"{SLACK_API_BASE}/conversations.list"
+        headers = get_slack_headers(bot_token)
+        params = {
+            "exclude_archived": True,
+            "types": "public_channel,private_channel",
+            "limit": 100
+        }
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            channels = [{
+                "id": ch.get("id"),
+                "name": ch.get("name"),
+                "isPrivate": ch.get("is_private", False),
+                "isMember": ch.get("is_member", False),
+                "memberCount": ch.get("num_members", 0),
+                "topic": ch.get("topic", {}).get("value", ""),
+                "purpose": ch.get("purpose", {}).get("value", "")
+            } for ch in result.get("channels", [])]
+            return jsonify({"success": True, "channels": channels})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        print(f"Channels error: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/messages', methods=['POST'])
+def slack_get_messages():
+    """Get messages from a channel or DM"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    channel_id = data.get('channelId')
+    limit = data.get('limit', 50)
+    
+    print(f"DEBUG: Getting messages for channel: {channel_id}")
+    print(f"DEBUG: Token provided: {'Yes' if bot_token else 'No'}")
+    
+    if not bot_token:
+        return jsonify({"error": "No bot token provided"}), 400
+    
+    if not channel_id:
+        return jsonify({"error": "No channel ID provided"}), 400
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        
+        # Check if this is a DM (starts with D) or channel (starts with C or G)
+        # For DMs, we don't need to join - bot already has access via im:history
+        is_dm = channel_id.startswith('D')
+        
+        if not is_dm:
+            # For channels, try to join first
+            join_url = f"{SLACK_API_BASE}/conversations.join"
+            join_response = requests.post(join_url, headers=headers, json={"channel": channel_id})
+            join_result = join_response.json()
+            print(f"DEBUG: Join result: {join_result}")
+        else:
+            print(f"DEBUG: Skipping join for DM channel")
+        
+        # Get the messages using conversations.history (works for both channels and DMs)
+        url = f"{SLACK_API_BASE}/conversations.history"
+        params = {"channel": channel_id, "limit": limit}
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        print(f"DEBUG: History result ok: {result.get('ok')}, error: {result.get('error')}")
+        
+        if result.get("ok"):
+            messages = [{
+                "ts": msg.get("ts"),
+                "text": msg.get("text"),
+                "user": msg.get("user"),
+                "type": msg.get("type"),
+                "subtype": msg.get("subtype"),
+                "reactions": msg.get("reactions", [])
+            } for msg in result.get("messages", [])]
+            return jsonify({"success": True, "messages": messages})
+        else:
+            error = result.get("error", "Unknown error")
+            print(f"DEBUG: Slack error: {error}")
+            return jsonify({"error": error, "details": f"Channel: {channel_id}, Is DM: {is_dm}"}), 400
+    except Exception as e:
+        print(f"DEBUG: Exception: {str(e)}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/send', methods=['POST'])
+def slack_send_message():
+    """Send a message to a Slack channel"""
+    data = request.json
+    bot_token = data.get('botToken')
+    channel = data.get('channel')
+    text = data.get('text')
+    
+    if not channel or not text:
+        return jsonify({"error": "channel and text are required"}), 400
+    
+    try:
+        url = f"{SLACK_API_BASE}/chat.postMessage"
+        headers = get_slack_headers(bot_token)
+        payload = {
+            "channel": channel,
+            "text": text,
+            "unfurl_links": True,
+            "unfurl_media": True
+        }
+        response = requests.post(url, headers=headers, json=payload)
+        result = response.json()
+        
+        if result.get("ok"):
+            return jsonify({
+                "success": True,
+                "messageTs": result.get("ts"),
+                "channel": result.get("channel")
+            })
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/users', methods=['POST'])
+def slack_get_users():
+    """Get list of workspace users"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    
+    if not bot_token:
+        return jsonify({"error": "No bot token provided"}), 400
+    
+    try:
+        url = f"{SLACK_API_BASE}/users.list"
+        headers = get_slack_headers(bot_token)
+        response = requests.get(url, headers=headers)
+        result = response.json()
+        
+        if result.get("ok"):
+            users = [{
+                "id": u.get("id"),
+                "name": u.get("name"),
+                "realName": u.get("real_name"),
+                "displayName": u.get("profile", {}).get("display_name"),
+                "avatar": u.get("profile", {}).get("image_72"),
+                "isBot": u.get("is_bot", False)
+            } for u in result.get("members", []) if not u.get("deleted")]
+            return jsonify({"success": True, "users": users})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/user/<user_id>', methods=['POST'])
+def slack_get_user_info(user_id):
+    """Get info for a specific user"""
+    data = request.json
+    bot_token = data.get('botToken')
+    
+    try:
+        url = f"{SLACK_API_BASE}/users.info"
+        headers = get_slack_headers(bot_token)
+        params = {"user": user_id}
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            u = result.get("user", {})
+            return jsonify({
+                "success": True,
+                "user": {
+                    "id": u.get("id"),
+                    "name": u.get("name"),
+                    "realName": u.get("real_name"),
+                    "displayName": u.get("profile", {}).get("display_name"),
+                    "avatar": u.get("profile", {}).get("image_192"),
+                    "email": u.get("profile", {}).get("email")
+                }
+            })
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===== DIRECT MESSAGES (DMs) =====
+
+@app.route('/api/slack/dms', methods=['POST'])
+def slack_get_dms():
+    """Get list of direct message conversations"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    
+    if not bot_token:
+        return jsonify({"error": "No bot token provided"}), 400
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/conversations.list"
+        params = {"types": "im", "limit": 100}
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            dms = [{
+                "id": dm.get("id"),
+                "userId": dm.get("user"),
+                "isOpen": dm.get("is_open", False)
+            } for dm in result.get("channels", [])]
+            return jsonify({"success": True, "dms": dms})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/dm/open', methods=['POST'])
+def slack_open_dm():
+    """Open a DM conversation with a user"""
+    data = request.json
+    bot_token = data.get('botToken')
+    user_id = data.get('userId')
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/conversations.open"
+        response = requests.post(url, headers=headers, json={"users": user_id})
+        result = response.json()
+        
+        if result.get("ok"):
+            return jsonify({
+                "success": True,
+                "channelId": result.get("channel", {}).get("id")
+            })
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===== FILES =====
+
+@app.route('/api/slack/files', methods=['POST'])
+def slack_get_files():
+    """Get list of files in workspace"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    
+    if not bot_token:
+        return jsonify({"success": True, "files": []})
+    channel_id = data.get('channelId')
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/files.list"
+        params = {"count": 50}
+        if channel_id:
+            params["channel"] = channel_id
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            files = [{
+                "id": f.get("id"),
+                "name": f.get("name"),
+                "title": f.get("title"),
+                "mimetype": f.get("mimetype"),
+                "size": f.get("size"),
+                "url": f.get("url_private"),
+                "thumb": f.get("thumb_360") or f.get("thumb_80"),
+                "user": f.get("user"),
+                "created": f.get("created")
+            } for f in result.get("files", [])]
+            return jsonify({"success": True, "files": files})
+        else:
+            print(f"Files error: {result.get('error')}")
+            return jsonify({"success": True, "files": []})
+    except Exception as e:
+        print(f"Files exception: {str(e)}")
+        return jsonify({"success": True, "files": []})
+
+# ===== REACTIONS =====
+
+@app.route('/api/slack/reactions/add', methods=['POST'])
+def slack_add_reaction():
+    """Add a reaction to a message"""
+    data = request.json
+    bot_token = data.get('botToken')
+    channel = data.get('channel')
+    timestamp = data.get('timestamp')
+    emoji = data.get('emoji')  # Without colons, e.g. "thumbsup"
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/reactions.add"
+        response = requests.post(url, headers=headers, json={
+            "channel": channel,
+            "timestamp": timestamp,
+            "name": emoji
+        })
+        result = response.json()
+        
+        if result.get("ok"):
+            return jsonify({"success": True})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/reactions/get', methods=['POST'])
+def slack_get_reactions():
+    """Get reactions for a message"""
+    data = request.json
+    bot_token = data.get('botToken')
+    channel = data.get('channel')
+    timestamp = data.get('timestamp')
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/reactions.get"
+        params = {"channel": channel, "timestamp": timestamp}
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            message = result.get("message", {})
+            reactions = message.get("reactions", [])
+            return jsonify({"success": True, "reactions": reactions})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+# ===== REMINDERS =====
+
+@app.route('/api/slack/reminders/add', methods=['POST'])
+def slack_add_reminder():
+    """Create a reminder"""
+    data = request.json
+    bot_token = data.get('botToken')
+    text = data.get('text')
+    time = data.get('time')  # Unix timestamp or natural language like "in 5 minutes"
+    user = data.get('user')  # Optional: remind specific user
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/reminders.add"
+        payload = {"text": text, "time": time}
+        if user:
+            payload["user"] = user
+        response = requests.post(url, headers=headers, json=payload)
+        result = response.json()
+        
+        if result.get("ok"):
+            reminder = result.get("reminder", {})
+            return jsonify({
+                "success": True,
+                "reminder": {
+                    "id": reminder.get("id"),
+                    "text": reminder.get("text"),
+                    "time": reminder.get("time")
+                }
+            })
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/reminders/list', methods=['POST'])
+def slack_list_reminders():
+    """List all reminders"""
+    data = request.json or {}
+    bot_token = data.get('botToken')
+    
+    if not bot_token:
+        return jsonify({"success": True, "reminders": [], "error": "No token"}), 200
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/reminders.list"
+        response = requests.get(url, headers=headers)
+        result = response.json()
+        
+        if result.get("ok"):
+            reminders = [{
+                "id": r.get("id"),
+                "text": r.get("text"),
+                "time": r.get("time"),
+                "complete": r.get("complete_ts") is not None
+            } for r in result.get("reminders", [])]
+            return jsonify({"success": True, "reminders": reminders})
+        else:
+            # Return empty list instead of error - reminders:read scope might be missing
+            print(f"Reminders error: {result.get('error')}")
+            return jsonify({"success": True, "reminders": [], "note": "reminders:read scope may be needed"})
+    except Exception as e:
+        print(f"Reminders exception: {str(e)}")
+        return jsonify({"success": True, "reminders": []})
+
+# ===== THREAD REPLIES =====
+
+@app.route('/api/slack/replies', methods=['POST'])
+def slack_get_replies():
+    """Get replies in a thread"""
+    data = request.json
+    bot_token = data.get('botToken')
+    channel = data.get('channel')
+    thread_ts = data.get('threadTs')
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/conversations.replies"
+        params = {"channel": channel, "ts": thread_ts}
+        response = requests.get(url, headers=headers, params=params)
+        result = response.json()
+        
+        if result.get("ok"):
+            messages = [{
+                "ts": msg.get("ts"),
+                "text": msg.get("text"),
+                "user": msg.get("user"),
+                "threadTs": msg.get("thread_ts")
+            } for msg in result.get("messages", [])]
+            return jsonify({"success": True, "messages": messages})
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/slack/reply', methods=['POST'])
+def slack_send_reply():
+    """Send a reply in a thread"""
+    data = request.json
+    bot_token = data.get('botToken')
+    channel = data.get('channel')
+    thread_ts = data.get('threadTs')
+    text = data.get('text')
+    
+    try:
+        headers = get_slack_headers(bot_token)
+        url = f"{SLACK_API_BASE}/chat.postMessage"
+        response = requests.post(url, headers=headers, json={
+            "channel": channel,
+            "text": text,
+            "thread_ts": thread_ts
+        })
+        result = response.json()
+        
+        if result.get("ok"):
+            return jsonify({
+                "success": True,
+                "ts": result.get("ts")
+            })
+        else:
+            return jsonify({"error": result.get("error")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5009)
+
+
