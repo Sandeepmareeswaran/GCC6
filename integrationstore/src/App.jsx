@@ -12,7 +12,6 @@ import JiraPage from './pages/JiraPage';
 import Inventory from './pages/Inventory';
 import Slackpage from './pages/Slackpage';
 import Sales from './pages/Sales';
-
 function App() {
   const [showRegister, setShowRegister] = useState(false);
 
