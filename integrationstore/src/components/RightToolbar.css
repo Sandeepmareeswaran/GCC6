@@ -1,0 +1,511 @@
+.right-toolbar {
+  position: fixed;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 9999;
+  width: 44px;
+  max-height: 80vh;
+  background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.28));
+  -webkit-backdrop-filter: blur(10px) saturate(130%);
+  backdrop-filter: blur(10px) saturate(130%);
+  border: 1px solid rgba(255,255,255,0.32);
+  box-shadow: 0 10px 30px rgba(12, 32, 63, 0.11);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  transition: all 0.28s ease;
+}
+
+/* Invisible mode - transparent layout */
+.right-toolbar.invisible-mode {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: 1px dashed rgba(0, 0, 0, 0.1) !important;
+}
+
+.right-toolbar.invisible-mode .rt-item {
+  background: transparent !important;
+}
+
+.right-toolbar.invisible-mode .rt-link:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+}
+
+.right-toolbar.invisible-mode .rt-icon {
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.2));
+}
+
+/* Editing mode */
+.right-toolbar.editing-mode {
+  box-shadow: 0 6px 18px rgba(33, 150, 243, 0.25);
+  border: 2px solid #2196f3;
+}
+
+.right-toolbar.editing-mode .rt-item {
+  position: relative;
+}
+
+.rt-edit-controls {
+  position: absolute;
+  left: -30px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  gap: 4px;
+  z-index: 10000;
+}
+
+.rt-edit-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px 4px;
+  font-size: 10px;
+  cursor: pointer;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-drag-handle {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  padding: 2px;
+  font-size: 10px;
+  cursor: grab;
+  width: 20px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  user-select: none;
+}
+
+.rt-drag-handle:active {
+  cursor: grabbing;
+}
+
+.dragging-active .rt-item[draggable="true"]:hover {
+  background: rgba(33, 150, 243, 0.1);
+}
+
+.drag-over {
+  border: 2px dashed #2196f3 !important;
+  background: rgba(33, 150, 243, 0.05) !important;
+}
+
+.rt-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+  width: 100%;
+  overflow-y: auto;
+}
+
+/* Toggle button */
+.rt-toggle {
+  appearance: none;
+  border: 0;
+  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,247,255,0.9));
+  width: 36px;
+  height: 36px;
+  margin: 6px auto 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #222;
+  border-radius: 50%;
+  box-shadow: 0 8px 18px rgba(12,32,63,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
+  border: 1px solid rgba(16,24,40,0.04);
+  transition: transform 160ms ease, background 120ms ease, box-shadow 120ms ease;
+}
+
+.right-toolbar.invisible-mode .rt-toggle {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.rt-toggle:focus {
+  outline: 2px solid rgba(33, 150, 243, 0.5);
+  outline-offset: 2px;
+}
+
+.rt-toggle-icon {
+  transition: transform 180ms ease;
+}
+
+.right-toolbar.expanded .rt-toggle-icon {
+  transform: rotate(180deg);
+}
+
+.rt-toggle-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-toggle-positioned {
+  /* keep toggle visually under the visible items */
+  margin-top: 6px;
+}
+
+.rt-toggle:active {
+  transform: translateY(1px) scale(0.995);
+}
+
+/* Minimal plain toggle (down arrow only, no decorative styling) */
+.rt-toggle.minimal {
+  background: transparent;
+  box-shadow: none;
+  border: 0;
+  border-radius: 0;
+  width: auto;
+  height: auto;
+  padding: 4px 2px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-toggle.minimal .rt-toggle-icon {
+  display: none;
+}
+
+.rt-toggle-arrow {
+  font-size: 14px;
+  line-height: 1;
+  color: inherit;
+}
+
+/* Remove any focus outline/border for the minimal toggle per request */
+.rt-toggle.minimal:focus {
+  outline: none;
+  box-shadow: none;
+  border: none;
+}
+
+.rt-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px;
+  text-decoration: none;
+  color: #111;
+  border-radius: 6px;
+  transition: all 120ms ease;
+  position: relative;
+  min-height: 28px;
+  border: 2px solid transparent;
+}
+
+.rt-item:hover {
+  background: rgba(255,255,255,0.12);
+  transform: translateX(-3px);
+}
+
+.rt-item.dragging {
+  box-shadow: 0 10px 30px rgba(0,0,0,0.18);
+  transform: translateX(-6px) scale(1.02) !important;
+  background: rgba(255,255,255,0.14) !important;
+  border-color: rgba(33,150,243,0.12);
+}
+
+/* removed numeric-more indicator — toggle uses arrow only */
+
+.right-toolbar.invisible-mode .rt-item:hover {
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.rt-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.rt-icon {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-label {
+  display: none;
+}
+
+.visually-hidden {
+  position: absolute !important;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Bubble shown on hover/focus */
+.rt-bubble {
+  display: none;
+  position: absolute;
+  right: 100%;
+  margin-right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 13px;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  z-index: 10001;
+}
+
+.rt-item:hover .rt-bubble,
+.rt-item:focus-within .rt-bubble {
+  display: flex;
+}
+
+.rt-bubble-label {
+  font-weight: 600;
+}
+
+.rt-open {
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 12px;
+  border: none;
+}
+
+/* PowerPoint specific */
+.rt-item[data-id="ms-ppt"] .rt-bubble {
+  background: #0f9d58;
+  color: #ffffff;
+}
+
+.rt-item[data-id="ms-ppt"] .rt-open {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* Collapsed state */
+.right-toolbar.collapsed .rt-inner > :nth-child(n+6) {
+  display: none;
+}
+
+/* Expanded state */
+.right-toolbar.expanded .rt-inner .rt-item {
+  display: flex;
+}
+
+/* Settings button */
+.rt-settings {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  z-index: 10000;
+}
+
+.rt-settings-btn {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid #ddd;
+  border-radius: 50%;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.rt-settings-btn:hover {
+  background: #2196f3;
+  color: white;
+  transform: rotate(90deg);
+}
+
+.rt-settings-menu {
+  position: absolute;
+  bottom: 100%;
+  right: 0;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 8px;
+  min-width: 160px;
+  display: none;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.rt-settings:hover .rt-settings-menu {
+  display: flex;
+}
+
+.rt-settings-menu button {
+  background: none;
+  border: none;
+  padding: 8px 12px;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.rt-settings-menu button:hover {
+  background: #f5f5f5;
+}
+
+/* Edit overlay */
+.rt-edit-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 100000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-edit-panel {
+  background: white;
+  border-radius: 12px;
+  padding: 24px;
+  max-width: 400px;
+  width: 90%;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+.rt-edit-panel h3 {
+  margin: 0 0 16px 0;
+  color: #333;
+}
+
+.rt-edit-panel p {
+  margin: 0 0 20px 0;
+  color: #666;
+  font-size: 14px;
+}
+
+.rt-edit-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 24px;
+}
+
+.rt-edit-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid #eee;
+  border-radius: 8px;
+  cursor: move;
+  user-select: none;
+}
+
+.rt-edit-item:hover {
+  background: #f9f9f9;
+}
+
+.rt-edit-visibility {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 4px;
+}
+
+.rt-edit-visibility.hidden {
+  opacity: 0.4;
+}
+
+.rt-edit-icon {
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rt-edit-label {
+  flex: 1;
+  font-size: 14px;
+}
+
+.rt-edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.rt-edit-actions button {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.rt-edit-actions button:first-child {
+  background: #2196f3;
+  color: white;
+}
+
+.rt-edit-actions button:last-child {
+  background: #f5f5f5;
+  color: #666;
+}
+
+.rt-edit-actions button:hover {
+  opacity: 0.9;
+}
+
+/* Custom scrollbar */
+.rt-inner::-webkit-scrollbar {
+  width: 8px;
+}
+
+.rt-inner::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.12);
+  border-radius: 8px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .right-toolbar {
+    display: none;
+  }
+  
+  .rt-edit-panel {
+    width: 95%;
+    padding: 16px;
+  }
+}
