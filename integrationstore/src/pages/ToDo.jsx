@@ -1,8 +1,13 @@
-function ToDo() {
-          return (
-                    <div>
-                              <h1>ToDo</h1>
-                    </div>
-          );
+
+import React from "react";
+import TodoList from "../components/todo/TodoList";
+
+function ToDO() {
+    return (
+        <div style={{ padding: 8 }}>
+            <TodoList />
+        </div>
+    );
 }
-export default ToDo;          
+
+export default ToDO;
