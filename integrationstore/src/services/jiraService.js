@@ -1,4 +1,5 @@
-const API_BASE = 'http://localhost:5000/api/jira';
+const API_BASE = 'https://jira-api.outliersunited.com/api/jira';
+
 
 // Get credentials from localStorage
 const getCredentials = () => {
