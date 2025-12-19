@@ -9,3 +9,24 @@ body {
   min-height: 100vh;
   font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
 }
+
+/* Sidebar width used to offset main content */
+:root {
+  --sidebar-width: 210px;
+}
+
+.main-content {
+  margin-left: var(--sidebar-width);
+  transition: margin-left 0.15s ease;
+  padding: 20px;
+}
+
+@media (max-width: 768px) {
+  /* On smaller screens give more room or let sidebar collapse if implemented */
+  :root {
+    --sidebar-width: 80px;
+  }
+  .main-content {
+    margin-left: var(--sidebar-width);
+  }
+}
