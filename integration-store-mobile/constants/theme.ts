@@ -1,41 +1,58 @@
 /**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
+ * Theme colors matching web app design
  */
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
-const tintColorDark = '#fff';
+// Main brand colors - matching web
+const primary = '#22c55e';
+const accent = '#f97316';
+const sidebarBg = '#1e1e2d';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
-    tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
-    tabIconSelected: tintColorLight,
+    text: '#1e1e2d',
+    textMuted: '#6b7280',
+    background: '#f8f9fa',
+    card: '#ffffff',
+    tint: primary,
+    icon: '#6b7280',
+    tabIconDefault: '#9ca3af',
+    tabIconSelected: primary,
+    border: '#e5e7eb',
+    primary,
+    accent,
   },
   dark: {
-    text: '#ECEDEE',
-    background: '#151718',
-    tint: tintColorDark,
-    icon: '#9BA1A6',
-    tabIconDefault: '#9BA1A6',
-    tabIconSelected: tintColorDark,
+    text: '#ffffff',
+    textMuted: '#9ca3af',
+    background: '#0f0f17',
+    card: '#1e1e2d',
+    tint: primary,
+    icon: '#9ca3af',
+    tabIconDefault: '#6b7280',
+    tabIconSelected: primary,
+    border: '#2d2d3d',
+    primary,
+    accent,
   },
+};
+
+export const Theme = {
+  primary,
+  accent,
+  sidebarBg,
+  success: '#22c55e',
+  warning: '#eab308',
+  error: '#ef4444',
+  info: '#3b82f6',
 };
 
 export const Fonts = Platform.select({
   ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
     sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
     serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
     rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
     mono: 'ui-monospace',
   },
   default: {
