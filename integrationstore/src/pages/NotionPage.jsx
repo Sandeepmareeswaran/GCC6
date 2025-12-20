@@ -81,8 +81,8 @@ function NotionPage() {
                     cardsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '16px' },
                     card: { background: '#fff', border: '2px solid #e5e7eb', borderRadius: '14px', padding: '20px', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' },
                     cardHover: { borderColor: '#22c55e', boxShadow: '0 8px 24px rgba(34,197,94,0.15)', transform: 'translateY(-2px)' },
-                    cardIcon: { fontSize: '32px' },
-                    cardTitle: { fontSize: '15px', fontWeight: '600', color: '#1e1e2d', textAlign: 'center' },
+                    gridCardIcon: { fontSize: '32px' },
+                    gridCardTitle: { fontSize: '15px', fontWeight: '600', color: '#1e1e2d', textAlign: 'center' },
                     // Empty State
                     emptyState: { textAlign: 'center', padding: '80px 20px', color: '#6b7280' },
                     emptyIcon: { fontSize: '64px', marginBottom: '20px', opacity: 0.8 },
