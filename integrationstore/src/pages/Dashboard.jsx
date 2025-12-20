@@ -1,7 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { useTheme } from '../context/ThemeContext';
+import { useLanguage } from '../context/LanguageContext';
 
 function Dashboard() {
           const [username, setUsername] = useState('User');
+          const { currentTheme } = useTheme();
+          const { t } = useLanguage();
 
           useEffect(() => {
                     const storedUsername = localStorage.getItem('username');
@@ -11,261 +16,106 @@ function Dashboard() {
           }, []);
 
           const styles = {
-                    container: {
-                              padding: '10px',
-                    },
-                    header: {
-                              marginBottom: '30px',
-                    },
-                    greeting: {
-                              fontSize: '28px',
-                              fontWeight: '700',
-                              color: '#1e1e2d',
-                              marginBottom: '5px',
-                    },
-                    subtitle: {
-                              fontSize: '14px',
-                              color: '#6b7280',
-                    },
-                    statsGrid: {
-                              display: 'grid',
-                              gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                              gap: '20px',
-                              marginBottom: '30px',
-                    },
-                    statCard: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '24px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                              display: 'flex',
-                              alignItems: 'flex-start',
-                              gap: '16px',
-                    },
-                    statIcon: {
-                              width: '50px',
-                              height: '50px',
-                              borderRadius: '12px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              flexShrink: 0,
-                    },
-                    statContent: {
-                              flex: 1,
-                    },
-                    statValue: {
-                              fontSize: '26px',
-                              fontWeight: '700',
-                              color: '#1e1e2d',
-                              marginBottom: '4px',
-                    },
-                    statLabel: {
-                              fontSize: '13px',
-                              color: '#6b7280',
-                    },
-                    statChange: {
-                              fontSize: '12px',
-                              marginTop: '8px',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                    },
-                    chartSection: {
-                              display: 'grid',
-                              gridTemplateColumns: '2fr 1fr',
-                              gap: '20px',
-                              marginBottom: '30px',
-                    },
-                    chartCard: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '24px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                    },
-                    chartTitle: {
-                              fontSize: '16px',
-                              fontWeight: '600',
-                              color: '#1e1e2d',
-                              marginBottom: '20px',
-                    },
-                    chartPlaceholder: {
-                              height: '200px',
-                              background: 'linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%)',
-                              borderRadius: '12px',
-                              display: 'flex',
-                              alignItems: 'flex-end',
-                              justifyContent: 'space-around',
-                              padding: '20px',
-                    },
-                    bar: {
-                              width: '40px',
-                              background: 'linear-gradient(180deg, #22c55e 0%, #16a34a 100%)',
-                              borderRadius: '6px 6px 0 0',
-                              transition: 'height 0.3s ease',
-                    },
-                    earningsCard: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '24px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                    },
-                    progressCircle: {
-                              width: '120px',
-                              height: '120px',
-                              borderRadius: '50%',
-                              background: `conic-gradient(#22c55e 0deg 252deg, #e5e7eb 252deg 360deg)`,
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              margin: '20px auto',
-                    },
-                    progressInner: {
-                              width: '90px',
-                              height: '90px',
-                              borderRadius: '50%',
-                              background: '#ffffff',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              fontSize: '20px',
-                              fontWeight: '700',
-                              color: '#1e1e2d',
-                    },
-                    tableCard: {
-                              background: '#ffffff',
-                              borderRadius: '16px',
-                              padding: '24px',
-                              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.08)',
-                              border: '1px solid #e5e7eb',
-                    },
-                    table: {
-                              width: '100%',
-                              borderCollapse: 'collapse',
-                    },
-                    th: {
-                              textAlign: 'left',
-                              padding: '12px 16px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              color: '#6b7280',
-                              textTransform: 'uppercase',
-                              borderBottom: '1px solid #e5e7eb',
-                    },
-                    td: {
-                              padding: '16px',
-                              fontSize: '14px',
-                              color: '#1e1e2d',
-                              borderBottom: '1px solid #f3f4f6',
-                    },
-                    badge: {
-                              padding: '4px 12px',
-                              borderRadius: '20px',
-                              fontSize: '12px',
-                              fontWeight: '500',
-                    },
+                    container: { padding: '10px' },
+                    header: { marginBottom: '30px' },
+                    greeting: { fontSize: '28px', fontWeight: '700', color: currentTheme.textPrimary, marginBottom: '5px' },
+                    subtitle: { fontSize: '14px', color: currentTheme.textSecondary },
+                    sectionTitle: { fontSize: '20px', fontWeight: '700', color: currentTheme.textPrimary, marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' },
+                    componentsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '20px', marginBottom: '40px' },
+                    componentCard: { background: currentTheme.bgCard, borderRadius: '16px', padding: '24px', boxShadow: currentTheme.shadow, border: `1px solid ${currentTheme.borderColor}`, transition: 'all 0.2s ease', cursor: 'pointer', textDecoration: 'none', display: 'block' },
+                    cardHeader: { display: 'flex', alignItems: 'center', gap: '14px', marginBottom: '16px' },
+                    cardIcon: { width: '48px', height: '48px', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px' },
+                    cardTitle: { fontSize: '18px', fontWeight: '600', color: currentTheme.textPrimary, marginBottom: '4px' },
+                    cardSubtitle: { fontSize: '13px', color: currentTheme.textSecondary },
+                    cardDescription: { fontSize: '14px', color: currentTheme.textSecondary, lineHeight: '1.5', marginBottom: '16px' },
+                    cardFooter: { display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+                    badge: { padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '500' },
+                    openBtn: { padding: '8px 16px', background: currentTheme.accent, color: '#fff', border: 'none', borderRadius: '8px', fontSize: '13px', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s' },
+                    statsSection: { marginBottom: '40px' },
+                    statsGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' },
+                    statCard: { background: currentTheme.bgCard, borderRadius: '14px', padding: '20px', boxShadow: currentTheme.shadow, border: `1px solid ${currentTheme.borderColor}` },
+                    statValue: { fontSize: '28px', fontWeight: '700', marginBottom: '4px' },
+                    statLabel: { fontSize: '13px', color: currentTheme.textSecondary },
           };
 
-          const stats = [
-                    { label: 'Total Revenue', value: '$ 680.56', icon: '💰', color: '#dcfce7', change: '+18%', positive: true },
-                    { label: 'Products', value: '2,95,025', icon: '📦', color: '#dbeafe', change: '+18%', positive: true },
-                    { label: 'Store', value: '12,585', icon: '🏪', color: '#fef3c7', change: '-8%', positive: false },
-                    { label: 'Active Customers', value: '42,450', icon: '👥', color: '#f3e8ff', change: '+18%', positive: true },
+          const components = [
+                    { id: 'home', path: '/', name: 'Home', icon: '🏠', iconBg: currentTheme.name === 'dark' ? '#1e3a5f' : '#dbeafe', description: 'Your personalized landing page with quick access to all features.', status: 'Active' },
+                    { id: 'dashboard', path: '/dashboard', name: 'Dashboard', icon: '📊', iconBg: currentTheme.name === 'dark' ? '#3b1d4a' : '#f3e8ff', description: 'Overview of all integrations, analytics, and key metrics.', status: 'Current' },
+                    { id: 'mail', path: '/mail', name: 'Mail', icon: '📧', iconBg: currentTheme.name === 'dark' ? '#4a3b1d' : '#fef3c7', description: 'Manage emails, compose messages, and track communications.', status: 'Active' },
+                    { id: 'jira', path: '/jira', name: 'Jira', icon: '🔵', iconBg: currentTheme.name === 'dark' ? '#1e3a5f' : '#dbeafe', description: 'Track issues, manage sprints, and collaborate with your team.', status: 'Connected' },
+                    { id: 'notion', path: '/notion', name: 'Notion', icon: '📝', iconBg: currentTheme.name === 'dark' ? '#2d2d3d' : '#f3f4f6', description: 'Access databases, pages, and organize your workspace.', status: 'Connected' },
+                    { id: 'slack', path: '/slack', name: 'Slack', icon: '💬', iconBg: currentTheme.name === 'dark' ? '#4a3b1d' : '#fef3c7', description: 'Send messages, manage channels, and team communication.', status: 'Connected' },
+                    { id: 'sales', path: '/sales', name: 'Sales', icon: '💰', iconBg: currentTheme.accentLight, description: 'Track sales performance, revenue, and customer analytics.', status: 'Active' },
+                    { id: 'inventory', path: '/inventory', name: 'Inventory', icon: '📦', iconBg: currentTheme.name === 'dark' ? '#4a3b1d' : '#fef3c7', description: 'Manage stock levels, products, and warehouse operations.', status: 'Active' },
+                    { id: 'todo', path: '/todo', name: 'ToDo', icon: '✅', iconBg: currentTheme.accentLight, description: 'Create, organize, and track your tasks and projects.', status: 'Active' },
+                    { id: 'notes', path: '/notes', name: 'Notes', icon: '📄', iconBg: currentTheme.name === 'dark' ? '#3b1d4a' : '#f3e8ff', description: 'Take notes, save ideas, and organize your thoughts.', status: 'Active' },
           ];
 
-          const recentItems = [
-                    { name: 'Laptop mt 2023', date: '01 Jan 2023', id: 'SW001254HM', price: '$42.86', status: 'Delivered' },
-                    { name: 'Phone 8 GB/256 GB', date: '02 Jan 2023', id: 'QQ001494619', price: '$59.55', status: 'Delivered' },
-                    { name: 'Headphone', date: '04 Jan 2023', id: 'MD56655415H', price: '$59.75', status: 'Pending' },
+          const quickStats = [
+                    { label: 'Total Integrations', value: '10', color: currentTheme.accent },
+                    { label: 'Connected APIs', value: '3', color: currentTheme.info },
+                    { label: 'Active Features', value: '10', color: currentTheme.warning },
+                    { label: 'Tasks Today', value: '5', color: '#8b5cf6' },
           ];
 
           return (
                     <div style={styles.container}>
                               <div style={styles.header}>
-                                        <h1 style={styles.greeting}>Hello, {username}!</h1>
-                                        <p style={styles.subtitle}>Check your calendar of your business</p>
+                                        <h1 style={styles.greeting}>{t('Hello')}, {username}! 👋</h1>
+                                        <p style={styles.subtitle}>
+                                                  {t('Welcome to your Integration Store dashboard. Access all your tools from one place.')}
+                                        </p>
                               </div>
 
-                              <div style={styles.statsGrid}>
-                                        {stats.map((stat, index) => (
-                                                  <div key={index} style={styles.statCard}>
-                                                            <div style={{ ...styles.statIcon, background: stat.color }}>
-                                                                      <span style={{ fontSize: '24px' }}>{stat.icon}</span>
+                              <div style={styles.statsSection}>
+                                        <div style={styles.statsGrid}>
+                                                  {quickStats.map((stat, index) => (
+                                                            <div key={index} style={styles.statCard}>
+                                                                      <div style={{ ...styles.statValue, color: stat.color }}>{stat.value}</div>
+                                                                      <div style={styles.statLabel}>{t(stat.label)}</div>
                                                             </div>
-                                                            <div style={styles.statContent}>
-                                                                      <div style={styles.statValue}>{stat.value}</div>
-                                                                      <div style={styles.statLabel}>{stat.label}</div>
-                                                                      <div style={{ ...styles.statChange, color: stat.positive ? '#22c55e' : '#ef4444' }}>
-                                                                                {stat.positive ? '↑' : '↓'} {stat.change} from last week
+                                                  ))}
+                                        </div>
+                              </div>
+
+                              <div>
+                                        <h2 style={styles.sectionTitle}>
+                                                  <span>🧩</span> {t('All Components')}
+                                        </h2>
+                                        <div style={styles.componentsGrid}>
+                                                  {components.map((comp) => (
+                                                            <Link
+                                                                      key={comp.id}
+                                                                      to={comp.path}
+                                                                      style={styles.componentCard}
+                                                                      onMouseEnter={(e) => {
+                                                                                e.currentTarget.style.transform = 'translateY(-4px)';
+                                                                                e.currentTarget.style.boxShadow = currentTheme.shadowHover;
+                                                                                e.currentTarget.style.borderColor = currentTheme.accent;
+                                                                      }}
+                                                                      onMouseLeave={(e) => {
+                                                                                e.currentTarget.style.transform = 'translateY(0)';
+                                                                                e.currentTarget.style.boxShadow = currentTheme.shadow;
+                                                                                e.currentTarget.style.borderColor = currentTheme.borderColor;
+                                                                      }}
+                                                            >
+                                                                      <div style={styles.cardHeader}>
+                                                                                <div style={{ ...styles.cardIcon, background: comp.iconBg }}>{comp.icon}</div>
+                                                                                <div>
+                                                                                          <div style={styles.cardTitle}>{t(comp.name)}</div>
+                                                                                          <div style={styles.cardSubtitle}>{t('Integration')}</div>
+                                                                                </div>
                                                                       </div>
-                                                            </div>
-                                                  </div>
-                                        ))}
-                              </div>
-
-                              <div style={styles.chartSection}>
-                                        <div style={styles.chartCard}>
-                                                  <div style={styles.chartTitle}>Revenue Growth</div>
-                                                  <div style={styles.chartPlaceholder}>
-                                                            {[60, 80, 45, 90, 70, 85, 95, 75, 100, 65, 88, 72].map((height, i) => (
-                                                                      <div key={i} style={{ ...styles.bar, height: `${height}%` }} />
-                                                            ))}
-                                                  </div>
+                                                                      <div style={styles.cardDescription}>{t(comp.description)}</div>
+                                                                      <div style={styles.cardFooter}>
+                                                                                <span style={{ ...styles.badge, background: currentTheme.accentLight, color: currentTheme.accent }}>
+                                                                                          {t(comp.status)}
+                                                                                </span>
+                                                                                <span style={styles.openBtn}>{t('Open')} →</span>
+                                                                      </div>
+                                                            </Link>
+                                                  ))}
                                         </div>
-
-                                        <div style={styles.earningsCard}>
-                                                  <div style={styles.chartTitle}>Earnings</div>
-                                                  <div style={styles.progressCircle}>
-                                                            <div style={styles.progressInner}>70%</div>
-                                                  </div>
-                                                  <div style={{ textAlign: 'center' }}>
-                                                            <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '5px' }}>
-                                                                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#22c55e', marginRight: '6px' }}></span>
-                                                                      Active 60%
-                                                            </div>
-                                                            <div style={{ fontSize: '12px', color: '#6b7280' }}>
-                                                                      <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#f97316', marginRight: '6px' }}></span>
-                                                                      Pending 40%
-                                                            </div>
-                                                  </div>
-                                        </div>
-                              </div>
-
-                              <div style={styles.tableCard}>
-                                        <div style={styles.chartTitle}>Top Selling Products</div>
-                                        <table style={styles.table}>
-                                                  <thead>
-                                                            <tr>
-                                                                      <th style={styles.th}>Product Name</th>
-                                                                      <th style={styles.th}>Order Date</th>
-                                                                      <th style={styles.th}>Order ID</th>
-                                                                      <th style={styles.th}>Price</th>
-                                                                      <th style={styles.th}>Status</th>
-                                                            </tr>
-                                                  </thead>
-                                                  <tbody>
-                                                            {recentItems.map((item, index) => (
-                                                                      <tr key={index}>
-                                                                                <td style={styles.td}>{item.name}</td>
-                                                                                <td style={styles.td}>{item.date}</td>
-                                                                                <td style={styles.td}>{item.id}</td>
-                                                                                <td style={styles.td}>{item.price}</td>
-                                                                                <td style={styles.td}>
-                                                                                          <span style={{
-                                                                                                    ...styles.badge,
-                                                                                                    background: item.status === 'Delivered' ? '#dcfce7' : '#fef3c7',
-                                                                                                    color: item.status === 'Delivered' ? '#16a34a' : '#d97706'
-                                                                                          }}>
-                                                                                                    {item.status}
-                                                                                          </span>
-                                                                                </td>
-                                                                      </tr>
-                                                            ))}
-                                                  </tbody>
-                                        </table>
                               </div>
                     </div>
           );

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
 import * as notionService from '../services/notionService';
+import { useLanguage } from '../context/LanguageContext';
+import { DynamicText } from '../components/TranslatedText';
 
 function NotionPage() {
           const [isConnected, setIsConnected] = useState(false);
@@ -20,6 +22,7 @@ function NotionPage() {
           const [currentView, setCurrentView] = useState('all');
           const [savingItem, setSavingItem] = useState(null);
           const [newTaskName, setNewTaskName] = useState('');
+          const { t } = useLanguage();
 
           // Modern light theme matching app
           const styles = {
@@ -279,7 +282,7 @@ function NotionPage() {
                                                                                                     {databases.map(db => (
                                                                                                               <div key={db.id} style={styles.card} onClick={() => handleDatabaseClick(db)} onMouseEnter={e => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(34,197,94,0.15)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}>
                                                                                                                         <span style={{ fontSize: '32px' }}>🗄️</span>
-                                                                                                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e1e2d' }}>{db.title || 'Untitled'}</div>
+                                                                                                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e1e2d' }}><DynamicText>{db.title || 'Untitled'}</DynamicText></div>
                                                                                                               </div>
                                                                                                     ))}
                                                                                           </div>
@@ -288,12 +291,12 @@ function NotionPage() {
 
                                                                       {pages.length > 0 && (
                                                                                 <>
-                                                                                          <div style={{ ...styles.sidebarTitle, marginTop: '32px', marginBottom: '16px' }}>Pages</div>
+                                                                                          <div style={{ ...styles.sidebarTitle, marginTop: '32px', marginBottom: '16px' }}>{t('Pages')}</div>
                                                                                           <div style={styles.cardsGrid}>
                                                                                                     {pages.map(page => (
                                                                                                               <div key={page.id} style={styles.card} onClick={() => handlePageClick(page)} onMouseEnter={e => { e.currentTarget.style.borderColor = '#22c55e'; e.currentTarget.style.boxShadow = '0 8px 24px rgba(34,197,94,0.15)'; }} onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.boxShadow = 'none'; }}>
                                                                                                                         <span style={{ fontSize: '32px' }}>{getPageIcon(page.icon)}</span>
-                                                                                                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e1e2d' }}>{page.title || 'Untitled'}</div>
+                                                                                                                        <div style={{ fontSize: '15px', fontWeight: '600', color: '#1e1e2d' }}><DynamicText>{page.title || 'Untitled'}</DynamicText></div>
                                                                                                               </div>
                                                                                                     ))}
                                                                                           </div>
@@ -305,18 +308,18 @@ function NotionPage() {
                                                   {/* Database View */}
                                                   {currentView === 'database' && selectedItem && (
                                                             <>
-                                                                      <button style={styles.btnBack} onClick={handleBackToList}>← Back to All</button>
+                                                                      <button style={styles.btnBack} onClick={handleBackToList}>← {t('Back to All')}</button>
                                                                       <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginBottom: '28px' }}>
                                                                                 <h2 style={{ ...styles.pageTitle, marginBottom: 0 }}>{databaseSchema?.icon?.emoji || '🗄️'} {databaseSchema?.title || selectedItem.title}</h2>
                                                                                 {selectedItem.url && <a href={selectedItem.url} target="_blank" rel="noreferrer" style={styles.openLink}>Open in Notion ↗</a>}
                                                                       </div>
 
-                                                                      {loading ? <p style={{ color: '#6b7280' }}>Loading...</p> : (
+                                                                      {loading ? <p style={{ color: '#6b7280' }}>{t('Loading')}...</p> : (
                                                                                 <div style={styles.tableContainer}>
                                                                                           <table style={styles.table}>
                                                                                                     <thead>
                                                                                                               <tr>
-                                                                                                                        <th style={styles.th}>Task Name</th>
+                                                                                                                        <th style={styles.th}>{t('Task Name')}</th>
                                                                                                                         {databaseSchema?.schema && Object.entries(databaseSchema.schema).filter(([, p]) => p.type !== 'title' && ['status', 'select', 'multi_select', 'date', 'checkbox'].includes(p.type)).slice(0, 5).map(([name]) => <th key={name} style={styles.th}>{name}</th>)}
                                                                                                               </tr>
                                                                                                     </thead>

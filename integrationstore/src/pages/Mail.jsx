@@ -3,6 +3,7 @@ import { useGoogleLogin } from '@react-oauth/google';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
 import EmojiPicker from 'emoji-picker-react';
+import { useLanguage } from '../context/LanguageContext';
 
 // Decode base64url body
 function decodeBody(encoded) {
@@ -181,6 +182,7 @@ function Mail() {
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
   const [initialLoading, setInitialLoading] = useState(true);
+  const { t } = useLanguage();
 
   // load saved connection
   useEffect(() => {
@@ -353,7 +355,7 @@ function Mail() {
     });
   };
 
-    const insertEmoji = (emojiData /* EmojiClickData */, event) => {
+  const insertEmoji = (emojiData /* EmojiClickData */, event) => {
     const emojiChar = emojiData.emoji;
     setCompose(prev => ({ ...prev, body: prev.body + emojiChar }));
     setShowEmojiPicker(false); // close emoji popup

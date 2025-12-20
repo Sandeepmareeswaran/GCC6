@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
+import { ThemeProvider, useTheme } from './context/ThemeContext';
+import { LanguageProvider } from './context/LanguageContext';
 import Home from './pages/Home';
 import Dashboard from './pages/Dashboard';
 import Mail from './pages/Mail';
@@ -15,11 +17,11 @@ import Slackpage from './pages/Slackpage';
 import Sales from './pages/Sales';
 import NotionPage from './pages/NotionPage';
 
-function App() {
+function AppContent() {
   const [showRegister, setShowRegister] = useState(false);
+  const { currentTheme } = useTheme();
 
   useEffect(() => {
-    // Check if userEmail exists in localStorage
     const userEmail = localStorage.getItem('userEmail');
     if (!userEmail) {
       setShowRegister(true);
@@ -31,9 +33,9 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <div className="app-container" style={{ background: currentTheme.bgPrimary, minHeight: '100vh' }}>
       {showRegister && <RegisterPopup onClose={handleClosePopup} />}
-      <main className="main-content">
+      <main className="main-content" style={{ background: currentTheme.bgPrimary }}>
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/dashboard" element={<Dashboard />} />
@@ -41,11 +43,10 @@ function App() {
           <Route path="/todo" element={<ToDo />} />
           <Route path="/notes" element={<Notes />} />
           <Route path="/jira" element={<JiraPage />} />
-          <Route path="/Inventory" element={<Inventory />} />
+          <Route path="/inventory" element={<Inventory />} />
           <Route path="/slack" element={<Slackpage />} />
-          <Route path="/Sales" element={<Sales />} />
-          <Route path='/notion' element={<NotionPage />} />
-
+          <Route path="/sales" element={<Sales />} />
+          <Route path="/notion" element={<NotionPage />} />
         </Routes>
       </main>
       <Sidenavbar />
@@ -54,5 +55,14 @@ function App() {
   );
 }
 
-export default App;
+function App() {
+  return (
+    <ThemeProvider>
+      <LanguageProvider>
+        <AppContent />
+      </LanguageProvider>
+    </ThemeProvider>
+  );
+}
 
+export default App;

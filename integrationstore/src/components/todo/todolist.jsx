@@ -3,6 +3,8 @@ import "./TodoList.css";
 import { auth } from "../../config/FirebaseConfig";
 import { getTodos, saveTodos, subscribeTodos } from "../../services/todoService";
 import { Timestamp } from "firebase/firestore";
+import { useLanguage } from "../../context/LanguageContext";
+import { DynamicText } from "../TranslatedText";
 
 const initial = [
   { id: "c1", title: "Delayed", key: "delayed", color: "#ff5c8a", items: [] },
@@ -15,6 +17,8 @@ const initial = [
 
 export default function TodoList() {
   const [cols, setCols] = useState(initial);
+  const { t } = useLanguage();
+
   // ensure saved data always contains our default columns (merge saved items into defaults)
   const mergeCols = (colsData) => {
     try {
@@ -48,50 +52,45 @@ export default function TodoList() {
             if (it && (it.owner === "SANDEEP M" || (typeof it.title === 'string' && it.title.includes('Submit trip')))) return true;
           }
         }
-      } catch (e) {}
+      } catch (e) { }
       return false;
     };
-    // subscribe to realtime updates
     try {
       unsub = subscribeTodos(email, data => {
         if (data) {
           if (isLegacy(data)) {
-            try { saveTodos(email, initial).catch(()=>{}); } catch(e){}
+            try { saveTodos(email, initial).catch(() => { }); } catch (e) { }
             setCols(initial);
           } else setCols(mergeCols(data));
         }
       });
-    } catch (e) {}
+    } catch (e) { }
 
-    // fetch once in case there's data but snapshot hasn't fired yet
     (async () => {
       try {
         const fetched = await getTodos(email);
         if (fetched) {
           if (isLegacy(fetched)) {
-            try { saveTodos(email, initial).catch(()=>{}); } catch(e){}
+            try { saveTodos(email, initial).catch(() => { }); } catch (e) { }
             setCols(initial);
           } else setCols(mergeCols(fetched));
         }
-      } catch (e) {}
+      } catch (e) { }
     })();
 
     return () => { if (unsub) unsub(); };
   }, []);
 
-  // Helper to update state and persist only when user actions change data
   const saveAndSet = (updater) => {
     setCols(prev => {
       const next = typeof updater === 'function' ? updater(prev) : updater;
-      try { saveTodos(getUserEmail(), next).catch(() => {}); } catch (e) {}
+      try { saveTodos(getUserEmail(), next).catch(() => { }); } catch (e) { }
       return next;
     });
   };
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ title: "", owner: "", date: "", column: "nodue" });
   const [editing, setEditing] = useState(null);
-
-  
 
   function onDragStart(e, fromColKey, itemId) {
     e.dataTransfer.setData("text/plain", JSON.stringify({ from: fromColKey, id: itemId }));
@@ -112,8 +111,7 @@ export default function TodoList() {
       const idx = fromCol.items.findIndex(i => i.id === id);
       if (idx === -1) return prev;
       const [item] = fromCol.items.splice(idx, 1);
-      // mark moved time as lastEdited (Firestore Timestamp)
-      try { item.lastEdited = Timestamp.now(); } catch (e) {}
+      try { item.lastEdited = Timestamp.now(); } catch (e) { }
       toCol.items.unshift(item);
       return copy;
     });
@@ -137,14 +135,13 @@ export default function TodoList() {
     else then = new Date(val).getTime();
     const now = Date.now();
     const sec = Math.floor((now - then) / 1000);
-    if (sec < 60) return `${sec} sec${sec===1?"":"s"} ago`;
+    if (sec < 60) return `${sec} ${t('sec')}${sec === 1 ? "" : "s"} ${t('ago')}`;
     const min = Math.floor(sec / 60);
-    if (min < 60) return `${min} min${min===1?"":"s"} ago`;
+    if (min < 60) return `${min} ${t('min')}${min === 1 ? "" : "s"} ${t('ago')}`;
     const hrs = Math.floor(min / 60);
-    if (hrs < 24) return `${hrs} hour${hrs===1?"":"s"} ago`;
+    if (hrs < 24) return `${hrs} ${t('hour')}${hrs === 1 ? "" : "s"} ${t('ago')}`;
     const days = Math.floor(hrs / 24);
-    if (days < 30) return `${days} day${days===1?"":"s"} ago`;
-    // fallback to local date for older items
+    if (days < 30) return `${days} ${t('day')}${days === 1 ? "" : "s"} ${t('ago')}`;
     return (val && typeof val === 'object' && typeof val.toDate === 'function') ? val.toDate().toLocaleString() : new Date(val).toLocaleString();
   }
 
@@ -202,12 +199,10 @@ export default function TodoList() {
   }
 
   function saveModal() {
-    if (!modalData.title || !modalData.title.trim()) return alert("Please enter a title");
+    if (!modalData.title || !modalData.title.trim()) return alert(t("Please enter a title"));
     if (editing) {
-      // update existing
       saveAndSet(prev => {
         const copy = prev.map(c => ({ ...c, items: [...c.items] }));
-        // preserve original createdAt if present
         const existing = copy.flatMap(c => c.items).find(i => i.id === editing.id);
         const createdAt = existing?.createdAt || Timestamp.now();
         const lastEdited = Timestamp.now();
@@ -237,22 +232,18 @@ export default function TodoList() {
 
   function addTask(e) {
     e.preventDefault();
-    if (!form.title.trim()) return alert("Please enter a title");
+    if (!form.title.trim()) return alert(t("Please enter a title"));
     if (editing) {
-      // save edits
       saveAndSet(prev => {
         const copy = prev.map(c => ({ ...c, items: [...c.items] }));
-        // preserve original createdAt
         const existing = copy.flatMap(c => c.items).find(i => i.id === editing.id);
         const createdAt = existing?.createdAt || Timestamp.now();
         const lastEdited = Timestamp.now();
-        // remove from original column
         const fromCol = copy.find(c => c.key === editing.colKey);
         if (fromCol) {
           const idx = fromCol.items.findIndex(i => i.id === editing.id);
           if (idx !== -1) fromCol.items.splice(idx, 1);
         }
-        // add to target column
         const target = copy.find(c => c.key === form.column);
         const updated = { id: editing.id, title: form.title.trim(), owner: form.owner.trim() || "", date: form.date || "", createdAt, lastEdited };
         if (target) target.items.unshift(updated);
@@ -282,7 +273,7 @@ export default function TodoList() {
   }
 
   function deleteTask(id, colKey) {
-    if (!confirm || window.confirm("Delete this task?")) {
+    if (!confirm || window.confirm(t("Delete this task?"))) {
       saveAndSet(prev => prev.map(c => c.key === colKey ? { ...c, items: c.items.filter(i => i.id !== id) } : c));
     }
   }
@@ -290,18 +281,18 @@ export default function TodoList() {
   return (
     <div className="todo-root">
       <div className="todo-toolbar">
-        <div>ToDo</div>
+        <div>{t('ToDo')}</div>
       </div>
       {showForm && (
         <form className="add-form" onSubmit={addTask}>
-          <input name="title" placeholder="Task title" value={form.title} onChange={handleInput} />
-          <input name="owner" placeholder="Owner" value={form.owner} onChange={handleInput} />
+          <input name="title" placeholder={t("Task title")} value={form.title} onChange={handleInput} />
+          <input name="owner" placeholder={t("Owner")} value={form.owner} onChange={handleInput} />
           <input name="date" type="date" value={form.date} onChange={handleInput} />
           <select name="column" value={form.column} onChange={handleInput}>
-            {cols.map(c => <option key={c.key} value={c.key}>{c.title}</option>)}
+            {cols.map(c => <option key={c.key} value={c.key}>{t(c.title)}</option>)}
           </select>
-          <button type="submit" className="add-submit">{editing ? 'Save' : 'Add'}</button>
-          {editing && <button type="button" className="add-cancel" onClick={cancelEdit}>Cancel</button>}
+          <button type="submit" className="add-submit">{editing ? t('Save') : t('Add')}</button>
+          {editing && <button type="button" className="add-cancel" onClick={cancelEdit}>{t('Cancel')}</button>}
         </form>
       )}
       <div className="board-wrap">
@@ -310,48 +301,48 @@ export default function TodoList() {
             <div className="modal-panel" onClick={e => e.stopPropagation()}>
               <div className="modal-header">
                 <div className="modal-status">
-                  <label>Status</label>
+                  <label>{t('Status')}</label>
                   <select name="status" value={modalData.status} onChange={handleModalInput}>
-                    <option>Open</option>
-                    <option>In Progress</option>
-                    <option>Done</option>
+                    <option>{t('Open')}</option>
+                    <option>{t('In Progress')}</option>
+                    <option>{t('Done')}</option>
                   </select>
                 </div>
                 <div className="modal-dates">
-                  <label>Due</label>
+                  <label>{t('Due')}</label>
                   <input type="date" name="date" value={modalData.date} onChange={handleModalInput} />
                 </div>
               </div>
               <div className="modal-body">
-                <input name="title" className="modal-title" placeholder="Task title" value={modalData.title} onChange={handleModalInput} />
+                <input name="title" className="modal-title" placeholder={t("Task title")} value={modalData.title} onChange={handleModalInput} />
                 <div className="modal-row">
-                  <input name="owner" placeholder="Assign to" value={modalData.owner} onChange={handleModalInput} />
+                  <input name="owner" placeholder={t("Assign to")} value={modalData.owner} onChange={handleModalInput} />
                 </div>
                 {modalData.createdAt && <div className="modal-created"><span className="modal-clock">🕒</span> {formatRelativeTime(modalData.createdAt)} ({formatLocal(modalData.createdAt)})</div>}
-                {modalData.lastEdited && modalData.lastEdited !== modalData.createdAt && <div className="modal-updated">Updated: {formatRelativeTime(modalData.lastEdited)} ({formatLocal(modalData.lastEdited)})</div>}
-                <label>Description</label>
+                {modalData.lastEdited && modalData.lastEdited !== modalData.createdAt && <div className="modal-updated">{t('Updated')}: {formatRelativeTime(modalData.lastEdited)} ({formatLocal(modalData.lastEdited)})</div>}
+                <label>{t('Description')}</label>
                 <textarea name="description" rows={4} value={modalData.description} onChange={handleModalInput}></textarea>
 
                 <div className="subtasks">
-                  <div className="subtasks-header">Subtasks</div>
+                  <div className="subtasks-header">{t('Subtasks')}</div>
                   <div className="subtasks-list">
                     {modalData.subtasks.map(s => (
                       <div key={s.id} className="subtask-row">
                         <input type="checkbox" checked={!!s.done} onChange={() => toggleSubtask(s.id)} />
-                        <div className="subtask-title">{s.title}</div>
+                        <div className="subtask-title"><DynamicText>{s.title}</DynamicText></div>
                         <button className="subtask-remove" onClick={() => removeSubtask(s.id)}>x</button>
                       </div>
                     ))}
                   </div>
                   <div className="subtask-add">
-                    <input placeholder="New subtask" id="__mini_subtask_input" onKeyDown={(e)=>{ if(e.key==='Enter'){ addSubtask(e.target.value); e.target.value=''; }}} />
-                    <button onClick={()=>{ const el = document.getElementById('__mini_subtask_input'); addSubtask(el.value); el.value=''; }}>Add</button>
+                    <input placeholder={t("New subtask")} id="__mini_subtask_input" onKeyDown={(e) => { if (e.key === 'Enter') { addSubtask(e.target.value); e.target.value = ''; } }} />
+                    <button onClick={() => { const el = document.getElementById('__mini_subtask_input'); addSubtask(el.value); el.value = ''; }}>{t('Add')}</button>
                   </div>
                 </div>
               </div>
               <div className="modal-footer">
-                <button className="btn" onClick={saveModal}>{editing ? 'Save' : 'Add'}</button>
-                <button className="btn ghost" onClick={closeModal}>Cancel</button>
+                <button className="btn" onClick={saveModal}>{editing ? t('Save') : t('Add')}</button>
+                <button className="btn ghost" onClick={closeModal}>{t('Cancel')}</button>
               </div>
             </div>
           </div>
@@ -363,17 +354,15 @@ export default function TodoList() {
             onDragOver={onDragOver}
             onDrop={e => onDrop(e, col.key)}
           >
-              <div className="column-header" style={{ borderTopColor: col.color }}>
-                <div className="col-title">{col.title}</div>
-                <div className="col-header-right">
-                  <div className="col-count">{col.items.length}</div>
-                  <button className="col-add-btn" onClick={() => openModal(col.key)}>+</button>
-                </div>
+            <div className="column-header" style={{ borderTopColor: col.color }}>
+              <div className="col-title">{t(col.title)}</div>
+              <div className="col-header-right">
+                <div className="col-count">{col.items.length}</div>
+                <button className="col-add-btn" onClick={() => openModal(col.key)}>+</button>
               </div>
+            </div>
 
-              {/* column add button opens modal popup */}
-
-              <div className="column-body">
+            <div className="column-body">
               {col.items.map(item => (
                 <div
                   key={item.id}
@@ -383,26 +372,26 @@ export default function TodoList() {
                   onClick={() => toggleExpand(item.id)}
                 >
                   <div className="card-top">
-                    <div className="badge">Open</div>
-                    <div className="owner">{item.owner}</div>
+                    <div className="badge">{t(item.status || 'Open')}</div>
+                    <div className="owner"><DynamicText>{item.owner}</DynamicText></div>
                   </div>
                   <div className="card-actions">
-                    <button className="card-btn" onClick={(e) => { e.stopPropagation(); openModal(col.key, item); }}>Edit</button>
-                    <button className="card-btn danger" onClick={(e) => { e.stopPropagation(); deleteTask(item.id, col.key); }}>Delete</button>
+                    <button className="card-btn" onClick={(e) => { e.stopPropagation(); openModal(col.key, item); }}>{t('Edit')}</button>
+                    <button className="card-btn danger" onClick={(e) => { e.stopPropagation(); deleteTask(item.id, col.key); }}>{t('Delete')}</button>
                   </div>
-                  <div className="card-title">{item.title}</div>
+                  <div className="card-title"><DynamicText>{item.title}</DynamicText></div>
                   {item.date && <div className="card-date">{item.date}</div>}
                   {item.createdAt && <div className="card-created"><span className="card-clock">🕒</span> {formatRelativeTime(item.createdAt)}</div>}
-                  {item.lastEdited && item.lastEdited !== item.createdAt && <div className="card-updated">Updated: {formatRelativeTime(item.lastEdited)}</div>}
+                  {item.lastEdited && item.lastEdited !== item.createdAt && <div className="card-updated">{t('Updated')}: {formatRelativeTime(item.lastEdited)}</div>}
                   {expanded[item.id] && (
                     <div className="card-expanded">
-                      {item.description && <div className="card-desc">{item.description}</div>}
+                      {item.description && <div className="card-desc"><DynamicText>{item.description}</DynamicText></div>}
                       {item.subtasks && item.subtasks.length > 0 && (
                         <div className="card-subtasks">
                           {item.subtasks.map(s => (
                             <div key={s.id} className="subtask-row">
                               <input type="checkbox" checked={!!s.done} readOnly />
-                              <div className="subtask-title">{s.title}</div>
+                              <div className="subtask-title"><DynamicText>{s.title}</DynamicText></div>
                             </div>
                           ))}
                         </div>

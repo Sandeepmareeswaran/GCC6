@@ -2,6 +2,9 @@
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
+import { useLanguage } from '../context/LanguageContext';
+import { DynamicText } from '../components/TranslatedText';
+
 
 const COLLECTIONS = [
   'DesignerMetal&MetalFrame',
@@ -36,6 +39,7 @@ function InventoryManagement() {
   const [editData, setEditData] = useState(EMPTY_PRODUCT);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const { t } = useLanguage();
 
   useEffect(() => {
     const fetchProducts = async () => {
@@ -133,9 +137,9 @@ function InventoryManagement() {
       {/* Header Section */}
       <div className="inventory-header">
         <div>
-          <h1 className="inventory-title">Inventory Management</h1>
+          <h1 className="inventory-title">{t('Inventory Management')}</h1>
           <p className="inventory-subtitle">
-            Manage and update product inventory across all categories
+            {t('Manage and update product inventory across all categories')}
           </p>
         </div>
         <div className="collection-stats">
@@ -153,8 +157,8 @@ function InventoryManagement() {
       {/* Category Selection - 3 columns layout */}
       <div className="category-section">
         <div className="section-header">
-          <h3 className="section-title">Product Categories</h3>
-          <p className="section-subtitle">Select a category to view products</p>
+          <h3 className="section-title">{t('Product Categories')}</h3>
+          <p className="section-subtitle">{t('Select a category to view products')}</p>
         </div>
         <div className="category-grid">
           {COLLECTIONS.map((col) => (
@@ -190,7 +194,7 @@ function InventoryManagement() {
               {loading && (
                 <div className="loading-indicator">
                   <div className="spinner"></div>
-                  <span>Loading...</span>
+                  <span>{t('Loading')}...</span>
                 </div>
               )}
             </div>
@@ -200,8 +204,8 @@ function InventoryManagement() {
             {!loading && products.length === 0 ? (
               <div className="empty-state">
                 <div className="empty-icon">📦</div>
-                <h4>No Products Found</h4>
-                <p>There are no products in this category.</p>
+                <h4>{t('No Products Found')}</h4>
+                <p>{t('There are no products in this category.')}</p>
               </div>
             ) : (
               <div className="products-grid">
@@ -238,11 +242,11 @@ function InventoryManagement() {
                       </h4>
                       <div className="product-details">
                         <div className="detail-row">
-                          <span className="detail-label">Brand:</span>
+                          <span className="detail-label">{t('Brand')}:</span>
                           <span className="detail-value">{product.Brand || '-'}</span>
                         </div>
                         <div className="detail-row">
-                          <span className="detail-label">Cost:</span>
+                          <span className="detail-label">{t('Cost')}:</span>
                           <span className="detail-value cost">
                             {product.Cost ? `$${parseFloat(product.Cost).toFixed(2)}` : '-'}
                           </span>
@@ -265,21 +269,21 @@ function InventoryManagement() {
           {!selectedProduct ? (
             <div className="empty-details">
               <div className="empty-details-icon">📝</div>
-              <h4>No Product Selected</h4>
-              <p>Select a product from the list to view and edit its details</p>
+              <h4>{t('No Product Selected')}</h4>
+              <p>{t('Select a product from the list to view and edit its details')}</p>
             </div>
           ) : (
             <>
               <div className="details-header">
                 <div>
-                  <h3 className="details-title">Product Details</h3>
+                  <h3 className="details-title">{t('Product Details')}</h3>
                   <div className="product-meta">
                     <span className="meta-item">
-                      <span className="meta-label">Collection:</span>
+                      <span className="meta-label">{t('Collection')}:</span>
                       <span className="meta-value">{getCollectionLabel(activeCollection)}</span>
                     </span>
                     <span className="meta-item">
-                      <span className="meta-label">Document ID:</span>
+                      <span className="meta-label">{t('Document ID')}:</span>
                       <code className="meta-value">{selectedProduct.id}</code>
                     </span>
                   </div>
@@ -295,7 +299,7 @@ function InventoryManagement() {
                       Deleting...
                     </>
                   ) : (
-                    'Delete Product'
+                    t('Delete Product')
                   )}
                 </button>
               </div>

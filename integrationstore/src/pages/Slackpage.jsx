@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
 import * as slackService from '../services/slackService';
+import { useLanguage } from '../context/LanguageContext';
+import { DynamicText } from '../components/TranslatedText';
 import './Slackpage.css';
 
 const EMOJIS = ['👍', '👎', '😀', '🎉', '❤️', '👀', '🚀', '🙏'];
@@ -32,6 +34,7 @@ function Slackpage() {
           const [threadReplies, setThreadReplies] = useState({});
           const [replyInputs, setReplyInputs] = useState({});
           const [showEmojiPicker, setShowEmojiPicker] = useState(null);
+          const { t } = useLanguage();
 
           useEffect(() => {
                     const loadConnection = async () => {
@@ -363,7 +366,7 @@ function Slackpage() {
                                                                                                               <div className="slack-message-avatar">{getUserInitials(msg.user)}</div>
                                                                                                               <div className="slack-message-content">
                                                                                                                         <div className="slack-message-user">{getUserName(msg.user)}<span className="slack-message-time">{formatTime(msg.ts)}</span></div>
-                                                                                                                        <div className="slack-message-text">{msg.text || '[No text content]'}</div>
+                                                                                                                        <div className="slack-message-text"><DynamicText>{msg.text || '[No text content]'}</DynamicText></div>
                                                                                                                         {msg.reactions && msg.reactions.length > 0 && (
                                                                                                                                   <div className="slack-reactions">
                                                                                                                                             {msg.reactions.map((r, i) => (
@@ -375,14 +378,14 @@ function Slackpage() {
                                                                                                                         )}
                                                                                                                         <div className="slack-message-actions">
                                                                                                                                   <div className="slack-emoji-picker-wrapper">
-                                                                                                                                            <button className="slack-action-btn" onClick={() => setShowEmojiPicker(showEmojiPicker === msg.ts ? null : msg.ts)}>😀 React</button>
+                                                                                                                                            <button className="slack-action-btn" onClick={() => setShowEmojiPicker(showEmojiPicker === msg.ts ? null : msg.ts)}>😀 {t('React')}</button>
                                                                                                                                             {showEmojiPicker === msg.ts && (
                                                                                                                                                       <div className="slack-emoji-picker">
                                                                                                                                                                 {EMOJIS.map(e => (<span key={e} onClick={() => handleAddReaction(msg, e)}>{e}</span>))}
                                                                                                                                                       </div>
                                                                                                                                             )}
                                                                                                                                   </div>
-                                                                                                                                  <button className="slack-action-btn" onClick={() => toggleThread(msg.ts)}>💬 {threadReplies[msg.ts]?.length || 0} replies</button>
+                                                                                                                                  <button className="slack-action-btn" onClick={() => toggleThread(msg.ts)}>💬 {threadReplies[msg.ts]?.length || 0} {t('replies')}</button>
                                                                                                                         </div>
                                                                                                               </div>
                                                                                                     </div>
@@ -393,7 +396,7 @@ function Slackpage() {
                                                                                                                                             <div className="slack-thread-reply-avatar">{getUserInitials(reply.user)}</div>
                                                                                                                                             <div>
                                                                                                                                                       <div className="slack-thread-reply-user">{getUserName(reply.user)} <span>{formatTime(reply.ts)}</span></div>
-                                                                                                                                                      <div className="slack-thread-reply-text">{reply.text}</div>
+                                                                                                                                                      <div className="slack-thread-reply-text"><DynamicText>{reply.text}</DynamicText></div>
                                                                                                                                             </div>
                                                                                                                                   </div>
                                                                                                                         ))}
@@ -408,13 +411,13 @@ function Slackpage() {
                                                                       </div>
                                                                       <div className="slack-compose-area">
                                                                                 <input className="slack-compose-input" placeholder={`Message ${selectedChannel.name}`} value={newMessage} onChange={(e) => setNewMessage(e.target.value)} onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()} />
-                                                                                <button className="slack-btn-primary" onClick={handleSendMessage} disabled={sending}>{sending ? '...' : 'Send'}</button>
+                                                                                <button className="slack-btn-primary" onClick={handleSendMessage} disabled={sending}>{sending ? '...' : t('Send')}</button>
                                                                       </div>
                                                             </>
                                                   ) : (
                                                             <div className="slack-empty-state">
                                                                       <div className="slack-empty-icon">💬</div>
-                                                                      <p>Select a channel or DM to start messaging</p>
+                                                                      <p>{t('Select a channel or DM to start messaging')}</p>
                                                             </div>
                                                   )}
                                         </div>

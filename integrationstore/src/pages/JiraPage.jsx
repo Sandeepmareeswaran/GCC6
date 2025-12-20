@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { doc, setDoc, getDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
 import * as jiraService from '../services/jiraService';
+import { useLanguage } from '../context/LanguageContext';
+import { DynamicText } from '../components/TranslatedText';
 
 // Issue type icons
 const issueTypeIcons = {
@@ -56,6 +58,7 @@ function JiraPage() {
           const [availableUsers, setAvailableUsers] = useState([]);
           const [availablePriorities, setAvailablePriorities] = useState([]);
           const [availableTransitions, setAvailableTransitions] = useState([]);
+          const { t } = useLanguage();
 
           const styles = {
                     container: { padding: '10px' },
@@ -400,13 +403,13 @@ function JiraPage() {
 
           return (
                     <div style={styles.container}>
-                              <div style={styles.header}><h1 style={styles.title}>Jira Board</h1></div>
+                              <div style={styles.header}><h1 style={styles.title}>{t('Jira Board')}</h1></div>
 
                               <div style={styles.connectedHeader}>
-                                        <div style={styles.userInfo}>Connected as: <strong style={{ color: '#1e1e2d', marginLeft: '4px' }}>{jiraUser?.displayName}</strong></div>
+                                        <div style={styles.userInfo}>{t('Connected as')}: <strong style={{ color: '#1e1e2d', marginLeft: '4px' }}>{jiraUser?.displayName}</strong></div>
                                         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                                                   <select style={styles.projectSelect} value={selectedProject} onChange={handleProjectChange}>
-                                                            <option value="">Select Project</option>
+                                                            <option value="">{t('Select Project')}</option>
                                                             {projects.map(p => (<option key={p.key} value={p.key}>{p.name} ({p.key})</option>))}
                                                   </select>
                                                   {selectedProject && <button style={styles.createBtn} onClick={() => setShowCreateModal(true)}>+ Create Issue</button>}
@@ -418,7 +421,7 @@ function JiraPage() {
 
                               {selectedProject && (
                                         <div style={styles.toolbar}>
-                                                  <div style={styles.searchBox}><span>🔍</span><input type="text" style={styles.searchInput} placeholder="Search issues..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                                                  <div style={styles.searchBox}><span>🔍</span><input type="text" style={styles.searchInput} placeholder={t('Search issues...')} value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
                                                   <div style={styles.viewToggle}>
                                                             <button style={{ ...styles.viewBtn, ...(viewMode === 'board' ? styles.viewBtnActive : {}) }} onClick={() => setViewMode('board')}>Board</button>
                                                             <button style={{ ...styles.viewBtn, ...(viewMode === 'list' ? styles.viewBtnActive : {}) }} onClick={() => setViewMode('list')}>List</button>
@@ -426,7 +429,7 @@ function JiraPage() {
                                         </div>
                               )}
 
-                              {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>Loading...</div>}
+                              {loading && <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>{t('Loading')}...</div>}
 
                               {!loading && selectedProject && viewMode === 'board' && (
                                         <>
@@ -439,7 +442,7 @@ function JiraPage() {
                                                                                           <div key={issue.key} style={{ ...styles.issueCard, ...(draggedIssue?.key === issue.key ? styles.issueCardDragging : {}), ...(transitioning === issue.key ? styles.issueCardTransitioning : {}) }} draggable onDragStart={(e) => handleDragStart(e, issue)} onDragEnd={handleDragEnd} onClick={() => handleIssueClick(issue)}>
                                                                                                     {transitioning === issue.key && <div style={{ fontSize: '11px', color: '#3b82f6', marginBottom: '6px' }}>⏳ Moving...</div>}
                                                                                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}><span style={{ fontSize: '14px' }}>{issueTypeIcons[issue.issueType] || '📋'}</span><span style={styles.issueKey}>{issue.key}</span></div>
-                                                                                                    <div style={styles.issueSummary}>{issue.summary}</div>
+                                                                                                    <div style={styles.issueSummary}><DynamicText>{issue.summary}</DynamicText></div>
                                                                                                     <div style={styles.issueFooter}><div style={styles.issueType}>{issue.issueType}</div><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>{issue.priority && renderPriority(issue.priority)}<div style={styles.avatar}>{renderAvatar(issue)}</div></div></div>
                                                                                           </div>
                                                                                 ))}
@@ -457,7 +460,7 @@ function JiraPage() {
                                                                       <tr key={issue.key} style={{ cursor: 'pointer' }} onClick={() => handleIssueClick(issue)}>
                                                                                 <td style={styles.td}><span style={{ fontSize: '18px' }}>{issueTypeIcons[issue.issueType] || '📋'}</span></td>
                                                                                 <td style={{ ...styles.td, color: '#0052CC', fontWeight: '600' }}>{issue.key}</td>
-                                                                                <td style={styles.td}>{issue.summary}</td>
+                                                                                <td style={styles.td}><DynamicText>{issue.summary}</DynamicText></td>
                                                                                 <td style={styles.td}><span style={getStatusBadgeStyle(issue.statusCategory)}>{issue.status}</span></td>
                                                                                 <td style={styles.td}><div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><div style={styles.avatar}>{renderAvatar(issue)}</div><span style={{ fontSize: '13px' }}>{issue.assignee}</span></div></td>
                                                                                 <td style={{ ...styles.td, color: '#6b7280', fontSize: '13px' }}>{issue.dueDate || '-'}</td>
@@ -468,18 +471,18 @@ function JiraPage() {
                                         </table>
                               )}
 
-                              {!loading && !selectedProject && <div style={styles.emptyState}><p style={{ fontSize: '16px' }}>Select a project to view issues</p></div>}
+                              {!loading && !selectedProject && <div style={styles.emptyState}><p style={{ fontSize: '16px' }}>{t('Select a project to view issues')}</p></div>}
 
                               {/* Create Issue Modal */}
                               {showCreateModal && (
                                         <div style={styles.modal}>
                                                   <div style={styles.modalContent}>
-                                                            <div style={styles.modalHeader}><h3 style={styles.modalTitle}>Create Issue</h3><button style={styles.closeBtn} onClick={() => setShowCreateModal(false)}>×</button></div>
+                                                            <div style={styles.modalHeader}><h3 style={styles.modalTitle}>{t('Create Issue')}</h3><button style={styles.closeBtn} onClick={() => setShowCreateModal(false)}>×</button></div>
                                                             <form onSubmit={handleCreateIssue}>
-                                                                      <div style={styles.inputGroup}><label style={styles.label}>Issue Type</label><select style={styles.input} value={newIssue.issueType} onChange={(e) => setNewIssue({ ...newIssue, issueType: e.target.value })}>{issueTypes.length > 0 ? issueTypes.map(type => (<option key={type.id} value={type.name}>{type.name}</option>)) : <option value="Task">Task</option>}</select></div>
-                                                                      <div style={styles.inputGroup}><label style={styles.label}>Summary</label><input type="text" style={styles.input} placeholder="What needs to be done?" value={newIssue.summary} onChange={(e) => setNewIssue({ ...newIssue, summary: e.target.value })} required /></div>
-                                                                      <div style={styles.inputGroup}><label style={styles.label}>Description</label><textarea style={styles.textarea} placeholder="Add more details..." value={newIssue.description} onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })} /></div>
-                                                                      <button type="submit" style={{ ...styles.button, opacity: loading ? 0.7 : 1 }} disabled={loading}>{loading ? 'Creating...' : 'Create Issue'}</button>
+                                                                      <div style={styles.inputGroup}><label style={styles.label}>{t('Issue Type')}</label><select style={styles.input} value={newIssue.issueType} onChange={(e) => setNewIssue({ ...newIssue, issueType: e.target.value })}>{issueTypes.length > 0 ? issueTypes.map(type => (<option key={type.id} value={type.name}>{type.name}</option>)) : <option value="Task">{t('Task')}</option>}</select></div>
+                                                                      <div style={styles.inputGroup}><label style={styles.label}>{t('Summary')}</label><input type="text" style={styles.input} placeholder={t('What needs to be done?')} value={newIssue.summary} onChange={(e) => setNewIssue({ ...newIssue, summary: e.target.value })} required /></div>
+                                                                      <div style={styles.inputGroup}><label style={styles.label}>{t('Description')}</label><textarea style={styles.textarea} placeholder={t('Add more details...')} value={newIssue.description} onChange={(e) => setNewIssue({ ...newIssue, description: e.target.value })} /></div>
+                                                                      <button type="submit" style={{ ...styles.button, opacity: loading ? 0.7 : 1 }} disabled={loading}>{loading ? t('Creating...') : t('Create Issue')}</button>
                                                             </form>
                                                   </div>
                                         </div>
@@ -510,12 +513,12 @@ function JiraPage() {
 
                                                                                 {/* Details */}
                                                                                 <div style={styles.detailSection}>
-                                                                                          <div style={styles.detailSectionTitle}>📋 Details</div>
+                                                                                          <div style={styles.detailSectionTitle}>📋 {t('Details')}</div>
                                                                                           <div style={{ background: '#f9fafb', borderRadius: '8px', padding: '8px' }}>
 
                                                                                                     {/* Status */}
                                                                                                     <div style={styles.detailRow}>
-                                                                                                              <div style={styles.detailLabel}>Status</div>
+                                                                                                              <div style={styles.detailLabel}>{t('Status')}</div>
                                                                                                               <div style={styles.detailValue}>
                                                                                                                         {isEditing && availableTransitions.length > 0 ? (
                                                                                                                                   <select style={styles.select} onChange={(e) => handleStatusChange(e.target.value)} defaultValue="">

@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import nstyles from './Navbar.module.css';
+import { useLanguage } from '../../context/LanguageContext';
 
 const Navbar = () => {
     const [username, setUsername] = useState('Guest');
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+    const { t } = useLanguage();
 
     useEffect(() => {
         const storedUsername = localStorage.getItem('username');
@@ -34,20 +36,21 @@ const Navbar = () => {
             <div className="max-w-7xl mx-auto px-6 lg:px-8">
                 <div className="flex items-center justify-between h-16">
                     <div className="flex items-center gap-6">
-                        <a href="#" className={`text-2xl font-extrabold ${nstyles.brand} integration-store-orange`}>Integration Store</a>
-                        {/* Removed nav links for Home, Integrations, Pricing, Documentation */}
+                        <a href="#" className={`text-2xl font-extrabold ${nstyles.brand} integration-store-orange`}>
+                            {t('Integration Store')}
+                        </a>
                     </div>
 
                     <div className="flex items-center gap-4">
                         <div className="hidden sm:flex items-center gap-3">
-                            <span className="text-sm text-gray-500">Welcome,</span>
+                            <span className="text-sm text-gray-500">{t('Welcome')},</span>
                             <span className={`text-sm font-semibold ${nstyles.userName}`}>{username}</span>
                         </div>
 
                         {isLoggedIn ? (
-                            <button onClick={handleLogout} className={`logoutBtn`}>Logout</button>
+                            <button onClick={handleLogout} className={`logoutBtn`}>{t('Logout')}</button>
                         ) : (
-                            <a href="#" className={`getStartedBtn`}>Get Started</a>
+                            <a href="#" className={`getStartedBtn`}>{t('Get Started')}</a>
                         )}
                     </div>
                 </div>

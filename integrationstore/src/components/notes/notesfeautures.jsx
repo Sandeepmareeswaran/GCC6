@@ -2,6 +2,8 @@ import React, { useState, useEffect } from "react";
 import "./notesfeautures.css";
 import { db } from "../../config/FirebaseConfig";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { useLanguage } from "../../context/LanguageContext";
+import { DynamicText } from "../TranslatedText";
 
 const NotesFeatures = () => {
   const [notes, setNotes] = useState([]);
@@ -12,8 +14,9 @@ const NotesFeatures = () => {
   const [search, setSearch] = useState("");
   const [characterCount, setCharacterCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const { t, language } = useLanguage();
 
-  // Categories
+  // Categories with translatable labels
   const categories = [
     { id: "personal", label: "Personal", icon: "👤" },
     { id: "work", label: "Work", icon: "💼" },
@@ -33,10 +36,8 @@ const NotesFeatures = () => {
   useEffect(() => {
     const loadNotes = async () => {
       const savedNotes = localStorage.getItem("professionalNotes");
-      // try to get user email from localStorage (set at registration/login)
       const userEmail = localStorage.getItem("userEmail");
 
-      // If user email exists, prefer Firestore data
       if (userEmail) {
         try {
           const docRef = doc(db, "Gccusernotes", userEmail);
@@ -54,23 +55,19 @@ const NotesFeatures = () => {
         }
       }
 
-      // fallback to localStorage
       if (savedNotes) {
         setNotes(JSON.parse(savedNotes));
       }
       setIsLoading(false);
     };
 
-    // simulate slight delay for loading UI consistency
     setTimeout(loadNotes, 300);
   }, []);
 
-  // Save notes to localStorage
+  // Save notes to localStorage and Firestore
   useEffect(() => {
     if (!isLoading) {
       localStorage.setItem("professionalNotes", JSON.stringify(notes));
-
-      // Also save to Firestore if we have a logged-in user email
       const userEmail = localStorage.getItem("userEmail");
       if (userEmail) {
         const saveToFirestore = async () => {
@@ -86,16 +83,14 @@ const NotesFeatures = () => {
     }
   }, [notes, isLoading]);
 
-  // Update character count
   useEffect(() => {
     setCharacterCount(input.length);
   }, [input]);
 
-  // Handle add note
   const handleAddNote = (e) => {
     e.preventDefault();
     if (input.trim() === "") return;
-    
+
     const newNote = {
       id: Date.now(),
       text: input,
@@ -105,26 +100,23 @@ const NotesFeatures = () => {
       lastEdited: new Date().toISOString(),
       pinned: false
     };
-    
+
     setNotes([newNote, ...notes]);
     setInput("");
     setCategory("personal");
     setPriority("medium");
   };
 
-  // Handle delete note
   const handleDeleteNote = (id) => {
     setNotes(notes.filter((note) => note.id !== id));
   };
 
-  // Handle pin/unpin note
   const handlePinNote = (id) => {
-    setNotes(notes.map(note => 
+    setNotes(notes.map(note =>
       note.id === id ? { ...note, pinned: !note.pinned } : note
     ));
   };
 
-  // Handle edit note
   const handleEditNote = (id) => {
     const noteToEdit = notes.find(note => note.id === id);
     if (noteToEdit) {
@@ -135,66 +127,62 @@ const NotesFeatures = () => {
     }
   };
 
-  // Handle clear all notes
   const handleClearAll = () => {
-    if (window.confirm("Are you sure you want to delete all notes? This action cannot be undone.")) {
+    if (window.confirm(t("Are you sure you want to delete all notes? This action cannot be undone."))) {
       setNotes([]);
       localStorage.removeItem("professionalNotes");
     }
   };
 
-  // Handle export notes
   const handleExportNotes = () => {
     const dataStr = JSON.stringify(notes, null, 2);
-    const dataUri = 'data:application/json;charset=utf-8,'+ encodeURIComponent(dataStr);
+    const dataUri = 'data:application/json;charset=utf-8,' + encodeURIComponent(dataStr);
     const exportFileDefaultName = `notes_export_${new Date().toISOString().split('T')[0]}.json`;
-    
+
     const linkElement = document.createElement('a');
     linkElement.setAttribute('href', dataUri);
     linkElement.setAttribute('download', exportFileDefaultName);
     linkElement.click();
   };
 
-  // Handle import notes
   const handleImportNotes = () => {
     const input = document.createElement('input');
     input.type = 'file';
     input.accept = '.json';
-    
+
     input.onchange = (e) => {
       const file = e.target.files[0];
       const reader = new FileReader();
-      
+
       reader.onload = (event) => {
         try {
           const importedNotes = JSON.parse(event.target.result);
           if (Array.isArray(importedNotes)) {
             setNotes(importedNotes);
-            alert('Notes imported successfully!');
+            alert(t('Notes imported successfully!'));
           } else {
-            alert('Invalid notes file format.');
+            alert(t('Invalid notes file format.'));
           }
         } catch (error) {
-          alert('Error importing notes. Please check the file format.');
+          alert(t('Error importing notes. Please check the file format.'));
         }
       };
-      
+
       reader.readAsText(file);
     };
-    
+
     input.click();
   };
 
-  // Format date
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     const now = new Date();
     const diffInHours = Math.abs(now - date) / 36e5;
-    
+
     if (diffInHours < 24) {
       return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     } else if (diffInHours < 48) {
-      return 'Yesterday';
+      return t('Yesterday');
     } else {
       return date.toLocaleDateString('en-US', {
         month: 'short',
@@ -203,14 +191,13 @@ const NotesFeatures = () => {
     }
   };
 
-  // Filter and sort notes
   const filteredNotes = notes
     .filter(note => {
       if (filter === "all") return true;
       if (filter === "pinned") return note.pinned;
       return note.category === filter;
     })
-    .filter(note => 
+    .filter(note =>
       note.text.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a, b) => {
@@ -221,12 +208,10 @@ const NotesFeatures = () => {
       return new Date(b.createdAt) - new Date(a.createdAt);
     });
 
-  // Statistics
   const totalNotes = notes.length;
   const pinnedNotes = notes.filter(note => note.pinned).length;
   const importantNotes = notes.filter(note => note.category === 'important').length;
 
-  // Get character counter class
   const getCharCounterClass = () => {
     if (characterCount >= 450) return "danger";
     if (characterCount >= 400) return "warning";
@@ -238,21 +223,21 @@ const NotesFeatures = () => {
       {/* Header */}
       <header className="notes-header">
         <div className="header-content">
-          <h1>📝 Professional Notes</h1>
-          <p>Organize your thoughts, ideas, and tasks in one place. Stay productive and focused.</p>
+          <h1>📝 {t('Professional Notes')}</h1>
+          <p>{t('Organize your thoughts, ideas, and tasks in one place. Stay productive and focused.')}</p>
         </div>
         <div className="notes-stats">
           <div className="stat-item">
             <span className="stat-number">{totalNotes}</span>
-            <span className="stat-label">Total Notes</span>
+            <span className="stat-label">{t('Total Notes')}</span>
           </div>
           <div className="stat-item">
             <span className="stat-number">{pinnedNotes}</span>
-            <span className="stat-label">Pinned</span>
+            <span className="stat-label">{t('Pinned')}</span>
           </div>
           <div className="stat-item">
             <span className="stat-number">{importantNotes}</span>
-            <span className="stat-label">Important</span>
+            <span className="stat-label">{t('Important')}</span>
           </div>
         </div>
       </header>
@@ -262,9 +247,9 @@ const NotesFeatures = () => {
         {/* Left Panel - Add Note Form */}
         <div className="add-note-panel">
           <div className="panel-header">
-            <h2>✏️ Add New Note</h2>
+            <h2>✏️ {t('Add New Note')}</h2>
             <span className={`char-counter ${getCharCounterClass()}`}>
-              {characterCount}/500 characters
+              {characterCount}/500 {t('characters')}
             </span>
           </div>
 
@@ -272,38 +257,37 @@ const NotesFeatures = () => {
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value.slice(0, 500))}
-              placeholder="Write your note here... You can add multiple lines and format your thoughts."
+              placeholder={t("Write your note here... You can add multiple lines and format your thoughts.")}
               className="notes-textarea"
               rows="8"
             />
 
             <div className="form-grid">
               <div className="form-group">
-                <label>Category</label>
-                <select 
-                  value={category} 
+                <label>{t('Category')}</label>
+                <select
+                  value={category}
                   onChange={(e) => setCategory(e.target.value)}
                   className="category-select"
                 >
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>
-                      {cat.icon} {cat.label}
+                      {cat.icon} {t(cat.label)}
                     </option>
                   ))}
                 </select>
               </div>
 
               <div className="form-group">
-                <label>Priority</label>
-                <select 
-                  value={priority} 
+                <label>{t('Priority')}</label>
+                <select
+                  value={priority}
                   onChange={(e) => setPriority(e.target.value)}
                   className="priority-select"
                 >
                   {priorities.map(pri => (
                     <option key={pri.id} value={pri.id}>
-                      <span className={`priority-indicator priority-${pri.id}`}></span>
-                      {pri.label}
+                      {t(pri.label)}
                     </option>
                   ))}
                 </select>
@@ -311,20 +295,20 @@ const NotesFeatures = () => {
             </div>
 
             <div className="form-actions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={handleClearAll}
                 className="btn btn-danger"
                 disabled={notes.length === 0}
               >
-                🗑️ Clear All
+                🗑️ {t('Clear All')}
               </button>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="btn btn-primary"
                 disabled={input.trim() === ""}
               >
-                💾 Save Note
+                💾 {t('Save Note')}
               </button>
             </div>
           </form>
@@ -333,15 +317,15 @@ const NotesFeatures = () => {
           <div className="quick-actions">
             <div className="action-btn" onClick={handleExportNotes}>
               <span className="action-icon">📤</span>
-              <span className="action-label">Export</span>
+              <span className="action-label">{t('Export')}</span>
             </div>
             <div className="action-btn" onClick={handleImportNotes}>
               <span className="action-icon">📥</span>
-              <span className="action-label">Import</span>
+              <span className="action-label">{t('Import')}</span>
             </div>
             <div className="action-btn" onClick={() => window.print()}>
               <span className="action-icon">🖨️</span>
-              <span className="action-label">Print</span>
+              <span className="action-label">{t('Print')}</span>
             </div>
           </div>
         </div>
@@ -355,24 +339,24 @@ const NotesFeatures = () => {
                 type="text"
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search notes..."
+                placeholder={t("Search notes...")}
                 className="search-input"
               />
             </div>
           </div>
 
           <div className="filter-buttons">
-            <button 
+            <button
               className={`filter-btn ${filter === "all" ? "active" : ""}`}
               onClick={() => setFilter("all")}
             >
-              All Notes
+              {t('All Notes')}
             </button>
-            <button 
+            <button
               className={`filter-btn ${filter === "pinned" ? "active" : ""}`}
               onClick={() => setFilter("pinned")}
             >
-              📌 Pinned
+              📌 {t('Pinned')}
             </button>
             {categories.map(cat => (
               <button
@@ -380,44 +364,45 @@ const NotesFeatures = () => {
                 className={`filter-btn ${filter === cat.id ? "active" : ""}`}
                 onClick={() => setFilter(cat.id)}
               >
-                {cat.icon} {cat.label}
+                {cat.icon} {t(cat.label)}
               </button>
             ))}
           </div>
 
           {isLoading ? (
-            <div className="loading">Loading notes...</div>
+            <div className="loading">{t('Loading notes...')}</div>
           ) : filteredNotes.length === 0 ? (
             <div className="empty-state">
               <div className="empty-state-icon">📝</div>
-              <h3>No notes found</h3>
+              <h3>{t('No notes found')}</h3>
               <p>
-                {search 
-                  ? "Try adjusting your search terms to find what you're looking for."
-                  : "Start by adding your first note using the form on the left!"
+                {search
+                  ? t("Try adjusting your search terms to find what you're looking for.")
+                  : t("Start by adding your first note using the form on the left!")
                 }
               </p>
             </div>
           ) : (
             <div className="notes-grid">
               {filteredNotes.map((note) => (
-                <div 
-                  key={note.id} 
+                <div
+                  key={note.id}
                   className={`note-card ${note.pinned ? 'pinned' : ''}`}
                 >
                   <span className={`category-badge badge-${note.category}`}>
-                    {categories.find(c => c.id === note.category)?.icon} {categories.find(c => c.id === note.category)?.label}
+                    {categories.find(c => c.id === note.category)?.icon} {t(categories.find(c => c.id === note.category)?.label || '')}
                   </span>
-                  
+
+                  {/* Dynamic translation for note content from database */}
                   <div className="note-content">
                     {note.text.split('\n').map((line, i) => (
                       <React.Fragment key={i}>
-                        {line}
+                        <DynamicText>{line}</DynamicText>
                         <br />
                       </React.Fragment>
                     ))}
                   </div>
-                  
+
                   <div className="note-footer">
                     <div className="note-meta">
                       <span className="note-date">
@@ -425,29 +410,29 @@ const NotesFeatures = () => {
                       </span>
                       <div>
                         <span className={`priority-indicator priority-${note.priority}`}></span>
-                        <small>{note.priority} priority</small>
+                        <small>{t(note.priority)} {t('priority')}</small>
                       </div>
                     </div>
-                    
+
                     <div className="note-actions">
-                      <button 
+                      <button
                         onClick={() => handleEditNote(note.id)}
                         className="icon-btn"
-                        title="Edit note"
+                        title={t("Edit note")}
                       >
                         ✏️
                       </button>
-                      <button 
+                      <button
                         onClick={() => handlePinNote(note.id)}
                         className={`icon-btn pin-btn ${note.pinned ? 'active' : ''}`}
-                        title={note.pinned ? "Unpin note" : "Pin note"}
+                        title={note.pinned ? t("Unpin note") : t("Pin note")}
                       >
                         📌
                       </button>
-                      <button 
+                      <button
                         onClick={() => handleDeleteNote(note.id)}
                         className="icon-btn delete-btn"
-                        title="Delete note"
+                        title={t("Delete note")}
                       >
                         🗑️
                       </button>

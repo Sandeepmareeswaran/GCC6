@@ -1562,141 +1562,147 @@ def notion_toggle_todo(block_id):
         return jsonify({"success": False, "error": str(e)}), 200
 
 
-# ==================== SALESFORCE API ====================
+# ==================== TRANSLATION API (GROQ) ====================
 
-# Salesforce CLI Connected App (public, works for OAuth Password flow)
-SALESFORCE_CLI_CLIENT_ID = "PlatformCLI"
+GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-@app.route('/api/salesforce/connect', methods=['POST'])
-def salesforce_connect():
-    """Connect to Salesforce using OAuth REST API (Password Grant)"""
+@app.route('/api/translate', methods=['POST'])
+def translate_text():
+    """Translate text using Groq API with Llama 3 model"""
     try:
         data = request.json or {}
-        username = data.get('username')
-        password = data.get('password')
-        security_token = data.get('security_token', '')
+        text = data.get('text', '')
+        target_language = data.get('targetLanguage', 'Hindi')
         
-        if not username or not password:
-            return jsonify({"error": "Username and password required"}), 400
+        if not text:
+            return jsonify({"success": False, "error": "No text provided"}), 400
         
-        # OAuth Password Grant flow
-        login_url = "https://login.salesforce.com/services/oauth2/token"
+        if not GROQ_API_KEY:
+            return jsonify({"success": False, "error": "Groq API key not configured"}), 500
         
-        payload = {
-            'grant_type': 'password',
-            'client_id': SALESFORCE_CLI_CLIENT_ID,
-            'username': username,
-            'password': password + security_token
+        # Create prompt for translation
+        prompt = f"""Translate the following English text to {target_language}. 
+Only return the translated text, nothing else. Do not add any explanations or quotation marks.
+
+Text to translate: {text}
+
+Translation:"""
+        
+        headers = {
+            "Authorization": f"Bearer {GROQ_API_KEY}",
+            "Content-Type": "application/json"
         }
         
-        response = requests.post(login_url, data=payload)
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"You are a professional translator. Translate text from English to {target_language} accurately. Only output the translated text with no additional commentary."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 500
+        }
+        
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload)
         result = response.json()
         
-        if response.status_code == 200 and 'access_token' in result:
+        if response.status_code == 200 and 'choices' in result:
+            translated_text = result['choices'][0]['message']['content'].strip()
+            # Clean up any quotation marks that might be added
+            translated_text = translated_text.strip('"\'')
             return jsonify({
                 "success": True,
-                "access_token": result.get("access_token"),
-                "instance_url": result.get("instance_url"),
-                "username": username
+                "translatedText": translated_text,
+                "sourceText": text,
+                "targetLanguage": target_language
             })
         else:
-            error_msg = result.get("error_description", result.get("error", "Authentication failed"))
+            error_msg = result.get('error', {}).get('message', 'Translation failed')
             return jsonify({"success": False, "error": error_msg}), 200
-        
+            
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 200
 
 
-
-@app.route('/api/salesforce/cases', methods=['POST'])
-def salesforce_get_cases():
-    """Get Cases (support tickets) from Salesforce"""
+@app.route('/api/translate/batch', methods=['POST'])
+def translate_batch():
+    """Translate multiple texts at once using Groq API"""
     try:
         data = request.json or {}
-        access_token = data.get('access_token')
-        instance_url = data.get('instance_url')
+        texts = data.get('texts', [])
+        target_language = data.get('targetLanguage', 'Hindi')
         
-        if not access_token or not instance_url:
-            return jsonify({"error": "Access token and instance URL required"}), 400
+        if not texts or not isinstance(texts, list):
+            return jsonify({"success": False, "error": "No texts provided"}), 400
+        
+        if not GROQ_API_KEY:
+            return jsonify({"success": False, "error": "Groq API key not configured"}), 500
+        
+        # Combine texts for batch translation
+        combined_text = "\n---\n".join(texts)
+        
+        prompt = f"""Translate each of the following English texts to {target_language}.
+The texts are separated by "---".
+Return the translations in the same order, separated by "---".
+Only return the translations, nothing else.
+
+Texts to translate:
+{combined_text}
+
+Translations:"""
         
         headers = {
-            "Authorization": f"Bearer {access_token}",
+            "Authorization": f"Bearer {GROQ_API_KEY}",
             "Content-Type": "application/json"
         }
         
-        # SOQL query to get Cases
-        query = "SELECT Id, CaseNumber, Subject, Description, Status, Priority, Origin, CreatedDate FROM Case ORDER BY CreatedDate DESC LIMIT 50"
-        
-        response = requests.get(
-            f"{instance_url}/services/data/v58.0/query",
-            headers=headers,
-            params={"q": query}
-        )
-        result = response.json()
-        
-        if response.status_code == 200:
-            cases = []
-            for record in result.get("records", []):
-                cases.append({
-                    "id": record.get("Id"),
-                    "caseNumber": record.get("CaseNumber"),
-                    "subject": record.get("Subject"),
-                    "description": record.get("Description"),
-                    "status": record.get("Status"),
-                    "priority": record.get("Priority"),
-                    "origin": record.get("Origin"),
-                    "createdDate": record.get("CreatedDate")
-                })
-            return jsonify({"success": True, "cases": cases, "totalSize": result.get("totalSize", 0)})
-        else:
-            return jsonify({"success": False, "cases": [], "error": result.get("message", "Failed to fetch cases")}), 200
-    except Exception as e:
-        return jsonify({"success": False, "cases": [], "error": str(e)}), 200
-
-
-@app.route('/api/salesforce/cases/create', methods=['POST'])
-def salesforce_create_case():
-    """Create a new Case in Salesforce"""
-    try:
-        data = request.json or {}
-        access_token = data.get('access_token')
-        instance_url = data.get('instance_url')
-        subject = data.get('subject')
-        description = data.get('description', '')
-        priority = data.get('priority', 'Medium')
-        origin = data.get('origin', 'Web')
-        
-        if not access_token or not instance_url or not subject:
-            return jsonify({"error": "Access token, instance URL, and subject required"}), 400
-        
-        headers = {
-            "Authorization": f"Bearer {access_token}",
-            "Content-Type": "application/json"
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": [
+                {
+                    "role": "system",
+                    "content": f"You are a professional translator. Translate texts from English to {target_language} accurately. Maintain the separator '---' between translations."
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2000
         }
         
-        case_data = {
-            "Subject": subject,
-            "Description": description,
-            "Priority": priority,
-            "Origin": origin
-        }
-        
-        response = requests.post(
-            f"{instance_url}/services/data/v58.0/sobjects/Case",
-            headers=headers,
-            json=case_data
-        )
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload)
         result = response.json()
         
-        if response.status_code == 201:
-            return jsonify({"success": True, "id": result.get("id")})
+        if response.status_code == 200 and 'choices' in result:
+            translated_combined = result['choices'][0]['message']['content'].strip()
+            translations = [t.strip().strip('"\'') for t in translated_combined.split('---')]
+            
+            # Ensure we have the same number of translations
+            while len(translations) < len(texts):
+                translations.append(texts[len(translations)])
+            
+            return jsonify({
+                "success": True,
+                "translations": translations[:len(texts)],
+                "targetLanguage": target_language
+            })
         else:
-            return jsonify({"success": False, "error": result.get("message", "Failed to create case")}), 200
+            error_msg = result.get('error', {}).get('message', 'Translation failed')
+            return jsonify({"success": False, "error": error_msg}), 200
+            
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 200
 
 
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5009)
-
 
