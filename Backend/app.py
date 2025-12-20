@@ -3,12 +3,31 @@ from flask_cors import CORS
 import requests
 import base64
 import os
+import json
 from dotenv import load_dotenv
+import firebase_admin
+from firebase_admin import credentials, firestore
 
 load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
+# ================= FIREBASE ADMIN SDK =================
+# Initialize Firebase Admin for backend data access
+FIREBASE_CRED_PATH = os.path.join(os.path.dirname(__file__), 'aram-eyecare-firebase-adminsdk-pec1o-db6527f7eb.json')
+if os.path.exists(FIREBASE_CRED_PATH) and not firebase_admin._apps:
+    cred = credentials.Certificate(FIREBASE_CRED_PATH)
+    firebase_admin.initialize_app(cred)
+    db_admin = firestore.client()
+    print("✅ Firebase Admin SDK initialized successfully")
+else:
+    db_admin = None
+    print("⚠️ Firebase Admin SDK not initialized - credentials file not found")
+
+# ================= GROQ AI CONFIG =================
+GROQ_API_KEY = os.getenv("GROQ_API_KEY", "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")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 
 # Jira API base URL format
@@ -1701,6 +1720,388 @@ Translations:"""
             
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 200
+
+
+# ================= AI CHATBOT =================
+
+CHATBOT_SYSTEM_PROMPT = """You are IntegrationStore Assistant, an AI helper for a unified workspace platform.
+
+IMPORTANT: When I provide you with user data (ToDo tasks, Notes, Inventory, etc.) in the context, that data is ALREADY FETCHED. Do NOT say "please wait" or "let me fetch" - just summarize what you see immediately.
+
+Your capabilities:
+1. SEARCH: I will provide you with real data from the user's account
+2. CREATE: Create new items (ToDo tasks, Notes) using [ACTION] tags
+3. QUERY: Answer questions about the data I provide
+4. HELP: Explain features and provide guidance
+
+When responding:
+- Be concise and direct
+- If data is provided, summarize it immediately with nice formatting
+- Use emojis for visual appeal
+- Use bullet points or numbered lists for multiple items
+
+To create items, include in your response:
+[ACTION]{"type": "create_todo", "title": "Task title", "column": "today"}[/ACTION]
+or
+[ACTION]{"type": "create_note", "text": "Note content", "category": "Work", "priority": "High"}[/ACTION]
+
+If no data is found, say so clearly. Respond in the user's language (English, Hindi, or Tamil)."""
+
+
+def get_firebase_data(collection_name, user_email):
+    """Fetch data from Firebase using Admin SDK"""
+    if not db_admin:
+        return []
+    try:
+        doc_ref = db_admin.collection(collection_name).document(user_email)
+        doc = doc_ref.get()
+        if doc.exists:
+            return doc.to_dict()
+        return {}
+    except Exception as e:
+        print(f"Firebase error: {e}")
+        return {}
+
+def search_todos(user_email, query=""):
+    """Search ToDo tasks for user"""
+    data = get_firebase_data("GCCToDo", user_email)  # Fixed collection name
+    if not data:
+        return []
+    
+    results = []
+    # The data structure is { cols: [...], meta: {...} }
+    columns = data.get('cols', [])  # Fixed: 'cols' not 'columns'
+    if not columns:
+        columns = data if isinstance(data, list) else []
+    
+    for col in columns:
+        if isinstance(col, dict):
+            for item in col.get('items', []):
+                if query.lower() in str(item.get('title', '')).lower() or query == "":
+                    results.append({
+                        "type": "todo",
+                        "title": item.get('title'),
+                        "column": col.get('title', col.get('key')),
+                        "status": item.get('status', 'Open'),
+                        "date": item.get('date', ''),
+                        "description": item.get('description', ''),
+                        "owner": item.get('owner', '')
+                    })
+    return results
+
+
+def search_notes(user_email, query=""):
+    """Search Notes for user"""
+    data = get_firebase_data("Gccusernotes", user_email)  # Fixed collection name
+    if not data:
+        return []
+    
+    results = []
+    notes = data.get('notes', [])
+    for note in notes:
+        if query.lower() in str(note.get('text', '')).lower() or query == "":
+            results.append({
+                "type": "note",
+                "text": note.get('text', '')[:100] + "..." if len(note.get('text', '')) > 100 else note.get('text', ''),
+                "category": note.get('category', 'Personal'),
+                "priority": note.get('priority', 'Medium'),
+                "pinned": note.get('pinned', False)
+            })
+    return results
+
+
+def search_inventory(query=""):
+    """Search Inventory products"""
+    print(f"🔍 search_inventory called with query: '{query}'")
+    print(f"🔍 db_admin initialized: {db_admin is not None}")
+    
+    if not db_admin:
+        print("❌ db_admin is None - Firebase Admin not initialized")
+        return []
+    
+    results = []
+    # Correct collection names from Inventory.jsx
+    collections = [
+        "DesignerMetal&MetalFrame",
+        "FrameLess", 
+        "FullFrame", 
+        "HalfFrame", 
+        "SafetyGlassess", 
+        "Sunglassess"
+    ]
+    
+    for coll_name in collections:
+        try:
+            print(f"📦 Trying collection: {coll_name}")
+            docs = db_admin.collection(coll_name).limit(15).stream()
+            count = 0
+            for doc in docs:
+                count += 1
+                data = doc.to_dict()
+                name = str(data.get('Name', '')).lower()
+                brand = str(data.get('Brand', '')).lower()
+                desc = str(data.get('Description', '')).lower()
+                
+                if query == "" or query.lower() in name or query.lower() in brand or query.lower() in desc:
+                    results.append({
+                        "type": "product",
+                        "id": doc.id,
+                        "name": data.get('Name', 'Unknown'),
+                        "brand": data.get('Brand', ''),
+                        "category": coll_name.replace("&", " & "),
+                        "cost": data.get('Cost', ''),
+                        "status": data.get('Status', 'Active'),
+                        "material": data.get('Material', ''),
+                        "frameColor": data.get('FrameColor', ''),
+                        "shape": data.get('Shape', '')
+                    })
+            print(f"   ✅ Found {count} docs in {coll_name}")
+        except Exception as e:
+            print(f"   ❌ Error in {coll_name}: {e}")
+    
+    print(f"📦 Total results: {len(results)}")
+    return results[:25]
+
+def search_sales(query=""):
+    """Search Sales/Orders data"""
+    if not db_admin:
+        return []
+    
+    results = []
+    try:
+        # Get orders from detailsorder collection
+        docs = db_admin.collection("detailsorder").limit(50).stream()
+        
+        total_revenue = 0
+        order_count = 0
+        category_sales = {}
+        
+        for doc in docs:
+            data = doc.to_dict()
+            order_count += 1
+            amount = float(data.get('totalAmount', 0) or 0)
+            total_revenue += amount
+            
+            category = data.get('category', 'Unknown')
+            if category not in category_sales:
+                category_sales[category] = 0
+            category_sales[category] += amount
+            
+            # Add individual order if matching query
+            if query == "" or query.lower() in str(data.get('productId', '')).lower() or query.lower() in str(category).lower():
+                results.append({
+                    "type": "order",
+                    "orderId": doc.id,
+                    "productId": data.get('productId', ''),
+                    "category": category,
+                    "amount": amount,
+                    "lensOption": data.get('lensOption', '')
+                })
+        
+        # Add summary at the beginning
+        summary = {
+            "type": "sales_summary",
+            "totalOrders": order_count,
+            "totalRevenue": round(total_revenue, 2),
+            "categoryBreakdown": category_sales
+        }
+        
+        return [summary] + results[:20]
+    except Exception as e:
+        print(f"Sales search error: {e}")
+        return []
+
+
+def create_todo_task(user_email, title, column="today", description=""):
+    """Create a new ToDo task"""
+    if not db_admin:
+        return {"success": False, "error": "Firebase not initialized"}
+    
+    import time
+    try:
+        doc_ref = db_admin.collection("GCCtodos").document(user_email)
+        doc = doc_ref.get()
+        
+        if doc.exists:
+            data = doc.to_dict()
+            columns = data if isinstance(data, list) else list(data.values())[0] if data else []
+        else:
+            columns = [
+                {"key": "delayed", "title": "Delayed", "items": []},
+                {"key": "today", "title": "Today", "items": []},
+                {"key": "week", "title": "This week", "items": []},
+                {"key": "month", "title": "This month", "items": []},
+                {"key": "upcoming", "title": "Upcoming", "items": []},
+                {"key": "nodue", "title": "No due date", "items": []}
+            ]
+        
+        new_task = {
+            "id": f"t-{int(time.time() * 1000)}",
+            "title": title,
+            "description": description,
+            "status": "Open",
+            "owner": "",
+            "date": ""
+        }
+        
+        for col in columns:
+            if col.get('key') == column or col.get('title', '').lower() == column.lower():
+                col['items'] = [new_task] + col.get('items', [])
+                break
+        
+        doc_ref.set(columns if isinstance(columns, dict) else {"columns": columns})
+        return {"success": True, "task": new_task}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+def create_note(user_email, text, category="Personal", priority="Medium"):
+    """Create a new Note"""
+    if not db_admin:
+        return {"success": False, "error": "Firebase not initialized"}
+    
+    import time
+    try:
+        doc_ref = db_admin.collection("GCCnotes").document(user_email)
+        doc = doc_ref.get()
+        
+        notes = []
+        if doc.exists:
+            data = doc.to_dict()
+            notes = data.get('notes', [])
+        
+        new_note = {
+            "id": int(time.time() * 1000),
+            "text": text,
+            "category": category,
+            "priority": priority,
+            "pinned": False,
+            "timestamp": time.time() * 1000
+        }
+        
+        notes.insert(0, new_note)
+        doc_ref.set({"notes": notes})
+        return {"success": True, "note": new_note}
+    except Exception as e:
+        return {"success": False, "error": str(e)}
+
+@app.route('/api/chat/query', methods=['POST'])
+def chat_query():
+    """Main chatbot query endpoint"""
+    data = request.json
+    message = data.get('message', '')
+    user_email = data.get('userEmail', 'guest')
+    language = data.get('language', 'en')
+    history = data.get('history', [])
+    
+    if not message:
+        return jsonify({"success": False, "error": "No message provided"}), 400
+    
+    try:
+        context_data = ""
+        message_lower = message.lower()
+        
+        if any(word in message_lower for word in ['task', 'todo', 'tasks', 'कार्य', 'பணி', 'today', 'आज', 'show', 'दिखाओ']):
+            todos = search_todos(user_email, "")
+            if todos:
+                context_data += f"\n\nUser's ToDo tasks ({len(todos)} found):\n"
+                for t in todos[:10]:
+                    context_data += f"- {t['title']} ({t['column']}, {t['status']})\n"
+        
+        if any(word in message_lower for word in ['note', 'notes', 'नोट', 'குறிப்பு']):
+            notes = search_notes(user_email, "")
+            if notes:
+                context_data += f"\n\nUser's Notes ({len(notes)} found):\n"
+                for n in notes[:10]:
+                    context_data += f"- [{n['category']}] {n['text']}\n"
+        
+        if any(word in message_lower for word in ['product', 'inventory', 'stock', 'glasses', 'frame', 'उत्पाद', 'பொருள்', 'sunglasses']):
+            search_term = message.lower().replace('product', '').replace('find', '').replace('search', '').replace('show', '').replace('inventory', '').strip()
+            products = search_inventory(search_term if len(search_term) > 2 else "")
+            if products:
+                context_data += f"\n\nInventory products ({len(products)} found):\n"
+                for p in products[:10]:
+                    context_data += f"- {p['name']} ({p['brand']}, {p['category']}, ₹{p['cost']})\n"
+        
+        if any(word in message_lower for word in ['sale', 'sales', 'revenue', 'order', 'orders', 'income', 'बिक्री', 'விற்பனை', 'money', 'earning']):
+            sales_data = search_sales("")
+            if sales_data:
+                summary = sales_data[0] if sales_data[0].get('type') == 'sales_summary' else None
+                if summary:
+                    context_data += f"\n\nSales Summary:\n"
+                    context_data += f"- Total Orders: {summary['totalOrders']}\n"
+                    context_data += f"- Total Revenue: ₹{summary['totalRevenue']}\n"
+                    context_data += f"- Category Breakdown:\n"
+                    for cat, amount in summary.get('categoryBreakdown', {}).items():
+                        context_data += f"  • {cat}: ₹{round(amount, 2)}\n"
+        
+        messages = [{"role": "system", "content": CHATBOT_SYSTEM_PROMPT + context_data}]
+        
+        for h in history[-6:]:
+            messages.append({"role": h.get("role", "user"), "content": h.get("content", "")})
+        
+        messages.append({"role": "user", "content": message})
+        
+        headers = {"Authorization": f"Bearer {GROQ_API_KEY}", "Content-Type": "application/json"}
+        
+        payload = {
+            "model": "llama-3.3-70b-versatile",
+            "messages": messages,
+            "temperature": 0.7,
+            "max_tokens": 1000
+        }
+        
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload)
+        result = response.json()
+        
+        if response.status_code == 200 and 'choices' in result:
+            bot_response = result['choices'][0]['message']['content']
+            
+            action_result = None
+            if '[ACTION]' in bot_response and '[/ACTION]' in bot_response:
+                try:
+                    action_start = bot_response.index('[ACTION]') + 8
+                    action_end = bot_response.index('[/ACTION]')
+                    action_json = bot_response[action_start:action_end]
+                    action = json.loads(action_json)
+                    
+                    if action.get('type') == 'create_todo':
+                        action_result = create_todo_task(user_email, action.get('title', 'New Task'), action.get('column', 'today'), action.get('description', ''))
+                    elif action.get('type') == 'create_note':
+                        action_result = create_note(user_email, action.get('text', 'New Note'), action.get('category', 'Personal'), action.get('priority', 'Medium'))
+                    
+                    bot_response = bot_response.replace(f'[ACTION]{action_json}[/ACTION]', '').strip()
+                except Exception as e:
+                    print(f"Action parsing error: {e}")
+            
+            return jsonify({"success": True, "response": bot_response, "action": action_result})
+        else:
+            error_msg = result.get('error', {}).get('message', 'Chat request failed')
+            return jsonify({"success": False, "error": error_msg}), 200
+            
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+@app.route('/api/chat/search', methods=['POST'])
+def chat_search():
+    """Cross-platform search endpoint"""
+    data = request.json
+    query = data.get('query', '')
+    user_email = data.get('userEmail', 'guest')
+    platforms = data.get('platforms', ['todo', 'notes', 'inventory', 'sales'])
+    
+    results = {"todos": [], "notes": [], "products": [], "sales": []}
+    
+    if 'todo' in platforms:
+        results["todos"] = search_todos(user_email, query)
+    if 'notes' in platforms:
+        results["notes"] = search_notes(user_email, query)
+    if 'inventory' in platforms:
+        results["products"] = search_inventory(query)
+    if 'sales' in platforms:
+        results["sales"] = search_sales(query)
+    
+    total = len(results["todos"]) + len(results["notes"]) + len(results["products"]) + len(results["sales"])
+    return jsonify({"success": True, "query": query, "results": results, "total": total})
 
 
 if __name__ == '__main__':

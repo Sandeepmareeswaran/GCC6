@@ -16,6 +16,8 @@ import Inventory from './pages/Inventory';
 import Slackpage from './pages/Slackpage';
 import Sales from './pages/Sales';
 import NotionPage from './pages/NotionPage';
+import CalendarPage from './pages/CalendarPage';
+import ChatbotWidget from './components/chatbot/ChatbotWidget';
 
 function AppContent() {
   const [showRegister, setShowRegister] = useState(false);
@@ -47,10 +49,12 @@ function AppContent() {
           <Route path="/slack" element={<Slackpage />} />
           <Route path="/sales" element={<Sales />} />
           <Route path="/notion" element={<NotionPage />} />
+          <Route path="/calendar" element={<CalendarPage />} />
         </Routes>
       </main>
       <Sidenavbar />
       <RightToolbar />
+      <ChatbotWidget />
     </div>
   );
 }

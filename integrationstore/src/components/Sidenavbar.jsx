@@ -17,64 +17,72 @@ function Sidenavbar() {
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'flex-start',
-      padding: '20px',
+      padding: '16px',
       zIndex: 1000,
+      overflow: 'hidden',
     },
     logo: {
-      width: '45px',
-      height: '45px',
+      width: '40px',
+      height: '40px',
       background: '#f97316',
-      borderRadius: '12px',
+      borderRadius: '10px',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      marginBottom: '20px',
-      fontSize: '20px',
+      marginBottom: '16px',
+      fontSize: '18px',
       fontWeight: '700',
       color: '#fff',
+      flexShrink: 0,
     },
     navItems: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px',
+      gap: '4px',
       alignItems: 'stretch',
       flex: 1,
       width: '100%',
+      overflowY: 'auto',
+      overflowX: 'hidden',
+      paddingRight: '4px',
     },
     navItem: {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'flex-start',
       width: '100%',
-      height: '42px',
-      borderRadius: '12px',
+      minHeight: '36px',
+      height: '36px',
+      borderRadius: '10px',
       color: currentTheme.sidebarText,
       textDecoration: 'none',
       transition: 'all 0.15s ease',
       position: 'relative',
-      padding: '8px 12px',
+      padding: '6px 10px',
+      flexShrink: 0,
     },
     navItemActive: {
       color: currentTheme.sidebarActiveText,
       background: currentTheme.accent,
     },
     label: {
-      marginLeft: '12px',
-      fontSize: '14px',
+      marginLeft: '10px',
+      fontSize: '13px',
       color: 'inherit',
       whiteSpace: 'nowrap',
     },
     bottomSection: {
       marginTop: 'auto',
-      paddingTop: '16px',
+      paddingTop: '12px',
       width: '100%',
       borderTop: `1px solid ${theme === 'dark' ? '#2d2d3d' : '#3d3d4d'}`,
+      flexShrink: 0,
     },
     languageSelector: {
       display: 'flex',
       flexDirection: 'column',
-      gap: '6px',
-      marginBottom: '12px',
+      gap: '4px',
+      marginBottom: '8px',
     },
     languageLabel: {
       display: 'flex',
@@ -199,6 +207,7 @@ function Sidenavbar() {
     { path: '/inventory', label: 'Inventory', icon: 'inventory' },
     { path: '/todo', label: 'ToDo', icon: 'todo' },
     { path: '/notes', label: 'Notes', icon: 'notes' },
+    { path: '/calendar', label: 'Calendar', icon: 'calendar' },
   ];
 
   // Fixed SVG icons
@@ -276,6 +285,15 @@ function Sidenavbar() {
     </svg>
   );
 
+  const CalendarIcon = () => (
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+      <line x1="16" y1="2" x2="16" y2="6"></line>
+      <line x1="8" y1="2" x2="8" y2="6"></line>
+      <line x1="3" y1="10" x2="21" y2="10"></line>
+    </svg>
+  );
+
   const getIcon = (icon) => {
     switch (icon) {
       case 'home': return <HomeIcon />;
@@ -288,6 +306,7 @@ function Sidenavbar() {
       case 'inventory': return <InventoryIcon />;
       case 'todo': return <TodoIcon />;
       case 'notes': return <NotesIcon />;
+      case 'calendar': return <CalendarIcon />;
       default: return null;
     }
   };
