@@ -1051,6 +1051,512 @@ def slack_send_reply():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+# ===============================
+# NOTION API ENDPOINTS
+# ===============================
+
+NOTION_API_BASE = "https://api.notion.com/v1"
+NOTION_VERSION = "2022-06-28"
+
+def get_notion_headers(api_token):
+    """Create headers for Notion API"""
+    return {
+        "Authorization": f"Bearer {api_token}",
+        "Content-Type": "application/json",
+        "Notion-Version": NOTION_VERSION
+    }
+
+@app.route('/api/notion/connect', methods=['POST'])
+def notion_connect():
+    """Test connection to Notion and get user info"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.get(f"{NOTION_API_BASE}/users/me", headers=headers)
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({
+                "success": True,
+                "botId": result.get("id"),
+                "name": result.get("name"),
+                "workspace": result.get("workspace_name") or {"name": "Notion Workspace"}
+            })
+        else:
+            return jsonify({"success": False, "error": result.get("message", "Failed to connect")}), 400
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/notion/databases', methods=['POST'])
+def notion_search_databases():
+    """Search for databases"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.post(
+            f"{NOTION_API_BASE}/search",
+            headers=headers,
+            json={"filter": {"property": "object", "value": "database"}}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            databases = []
+            for db in result.get("results", []):
+                title = ""
+                title_prop = db.get("title", [])
+                if title_prop and len(title_prop) > 0:
+                    title = title_prop[0].get("plain_text", "")
+                databases.append({
+                    "id": db.get("id"),
+                    "title": title or "Untitled",
+                    "icon": db.get("icon"),
+                    "url": db.get("url")
+                })
+            return jsonify({"success": True, "databases": databases})
+        else:
+            return jsonify({"success": False, "databases": [], "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "databases": [], "error": str(e)}), 200
+
+@app.route('/api/notion/pages', methods=['POST'])
+def notion_search_pages():
+    """Search for pages"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.post(
+            f"{NOTION_API_BASE}/search",
+            headers=headers,
+            json={"filter": {"property": "object", "value": "page"}}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            pages = []
+            for page in result.get("results", []):
+                # Skip pages that are database items (parent is a database)
+                parent = page.get("parent", {})
+                parent_type = parent.get("type", "")
+                if parent_type == "database_id":
+                    # This is a database row/item, skip it
+                    continue
+                
+                title = "Untitled"
+                props = page.get("properties", {})
+                for prop_name, prop_value in props.items():
+                    if prop_value.get("type") == "title":
+                        title_arr = prop_value.get("title", [])
+                        if title_arr and len(title_arr) > 0:
+                            title = title_arr[0].get("plain_text", "Untitled")
+                        break
+                pages.append({
+                    "id": page.get("id"),
+                    "title": title,
+                    "icon": page.get("icon"),
+                    "url": page.get("url"),
+                    "parent_type": parent_type
+                })
+            return jsonify({"success": True, "pages": pages})
+        else:
+            return jsonify({"success": False, "pages": [], "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "pages": [], "error": str(e)}), 200
+
+
+@app.route('/api/notion/database/<database_id>/query', methods=['POST'])
+def notion_query_database(database_id):
+    """Query a database for its items"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.post(
+            f"{NOTION_API_BASE}/databases/{database_id}/query",
+            headers=headers,
+            json={}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            items = []
+            for item in result.get("results", []):
+                title = "Untitled"
+                props = item.get("properties", {})
+                properties_dict = {}
+                
+                for prop_name, prop_value in props.items():
+                    prop_type = prop_value.get("type")
+                    if prop_type == "title":
+                        title_arr = prop_value.get("title", [])
+                        if title_arr and len(title_arr) > 0:
+                            title = title_arr[0].get("plain_text", "Untitled")
+                    elif prop_type == "rich_text":
+                        text_arr = prop_value.get("rich_text", [])
+                        if text_arr and len(text_arr) > 0:
+                            properties_dict[prop_name] = text_arr[0].get("plain_text", "")
+                    elif prop_type == "select":
+                        select_val = prop_value.get("select")
+                        if select_val:
+                            properties_dict[prop_name] = select_val.get("name", "")
+                    elif prop_type == "status":
+                        status_val = prop_value.get("status")
+                        if status_val:
+                            properties_dict[prop_name] = status_val.get("name", "")
+                    elif prop_type == "multi_select":
+                        multi_vals = prop_value.get("multi_select", [])
+                        properties_dict[prop_name] = ", ".join([v.get("name", "") for v in multi_vals])
+                    elif prop_type == "number":
+                        properties_dict[prop_name] = str(prop_value.get("number", ""))
+                    elif prop_type == "checkbox":
+                        properties_dict[prop_name] = "Yes" if prop_value.get("checkbox") else "No"
+                    elif prop_type == "date":
+                        date_val = prop_value.get("date")
+                        if date_val:
+                            properties_dict[prop_name] = date_val.get("start", "")
+
+                
+                items.append({
+                    "id": item.get("id"),
+                    "title": title,
+                    "url": item.get("url"),
+                    "properties": properties_dict
+                })
+            return jsonify({"success": True, "results": items})
+        else:
+            return jsonify({"success": False, "results": [], "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "results": [], "error": str(e)}), 200
+
+
+@app.route('/api/notion/database/<database_id>/schema', methods=['POST'])
+def notion_get_database_schema(database_id):
+    """Get database schema (properties/columns)"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.get(f"{NOTION_API_BASE}/databases/{database_id}", headers=headers)
+        result = response.json()
+        
+        if response.status_code == 200:
+            props = result.get("properties", {})
+            schema = {}
+            for prop_name, prop_value in props.items():
+                prop_type = prop_value.get("type")
+                schema[prop_name] = {
+                    "id": prop_value.get("id"),
+                    "type": prop_type,
+                    "name": prop_name
+                }
+                # Include options for select/multi_select
+                if prop_type == "select":
+                    schema[prop_name]["options"] = [
+                        {"name": opt.get("name"), "color": opt.get("color")}
+                        for opt in prop_value.get("select", {}).get("options", [])
+                    ]
+                elif prop_type == "multi_select":
+                    schema[prop_name]["options"] = [
+                        {"name": opt.get("name"), "color": opt.get("color")}
+                        for opt in prop_value.get("multi_select", {}).get("options", [])
+                    ]
+                elif prop_type == "status":
+                    schema[prop_name]["options"] = [
+                        {"name": opt.get("name"), "color": opt.get("color")}
+                        for opt in prop_value.get("status", {}).get("options", [])
+                    ]
+            
+            return jsonify({
+                "success": True,
+                "title": result.get("title", [{}])[0].get("plain_text", "Untitled") if result.get("title") else "Untitled",
+                "icon": result.get("icon"),
+                "schema": schema
+            })
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/database/<database_id>/items/create', methods=['POST'])
+def notion_create_database_item(database_id):
+    """Create a new item in a database"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        properties = data.get('properties', {})
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        payload = {
+            "parent": {"database_id": database_id},
+            "properties": properties
+        }
+        
+        response = requests.post(f"{NOTION_API_BASE}/pages", headers=headers, json=payload)
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "page": result})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/pages/<page_id>/update', methods=['PATCH'])
+def notion_update_page_properties(page_id):
+    """Update a page's properties (for database items)"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        properties = data.get('properties', {})
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        response = requests.patch(
+            f"{NOTION_API_BASE}/pages/{page_id}",
+            headers=headers,
+            json={"properties": properties}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "page": result})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/page/<page_id>', methods=['POST'])
+def notion_get_page(page_id):
+    """Get a specific page"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.get(f"{NOTION_API_BASE}/pages/{page_id}", headers=headers)
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "page": result})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/blocks/<block_id>/children', methods=['POST'])
+def notion_get_block_children(block_id):
+    """Get children blocks of a page or block"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        response = requests.get(
+            f"{NOTION_API_BASE}/blocks/{block_id}/children",
+            headers=headers
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({
+                "success": True,
+                "blocks": result.get("results", []),
+                "has_more": result.get("has_more", False)
+            })
+        else:
+            return jsonify({"success": False, "blocks": [], "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "blocks": [], "error": str(e)}), 200
+
+
+@app.route('/api/notion/blocks/create', methods=['POST'])
+def notion_create_block():
+    """Create a new block in a page"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        parent_id = data.get('parent_id')
+        block_type = data.get('block_type', 'paragraph')
+        content = data.get('content', '')
+        after_block = data.get('after')  # Optional: insert after this block
+        
+        if not api_token or not parent_id:
+            return jsonify({"error": "API token and parent_id required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        # Build block object based on type
+        block_content = {"rich_text": [{"type": "text", "text": {"content": content}}]}
+        
+        if block_type == 'to_do':
+            block_content["checked"] = False
+        
+        new_block = {
+            "object": "block",
+            "type": block_type,
+            block_type: block_content
+        }
+        
+        payload = {"children": [new_block]}
+        if after_block:
+            payload["after"] = after_block
+        
+        response = requests.patch(
+            f"{NOTION_API_BASE}/blocks/{parent_id}/children",
+            headers=headers,
+            json=payload
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({
+                "success": True,
+                "block": result.get("results", [{}])[0] if result.get("results") else {}
+            })
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/blocks/<block_id>/update', methods=['PATCH'])
+def notion_update_block(block_id):
+    """Update a block's content"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        block_type = data.get('block_type', 'paragraph')
+        content = data.get('content')
+        checked = data.get('checked')  # For to_do blocks
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        # Build update payload
+        update_data = {}
+        
+        if content is not None:
+            update_data[block_type] = {
+                "rich_text": [{"type": "text", "text": {"content": content}}]
+            }
+        
+        if checked is not None and block_type == 'to_do':
+            if block_type not in update_data:
+                update_data[block_type] = {}
+            update_data[block_type]["checked"] = checked
+        
+        response = requests.patch(
+            f"{NOTION_API_BASE}/blocks/{block_id}",
+            headers=headers,
+            json=update_data
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "block": result})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/blocks/<block_id>/delete', methods=['DELETE'])
+def notion_delete_block(block_id):
+    """Delete a block"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        response = requests.delete(
+            f"{NOTION_API_BASE}/blocks/{block_id}",
+            headers=headers
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+@app.route('/api/notion/blocks/<block_id>/toggle-todo', methods=['PATCH'])
+def notion_toggle_todo(block_id):
+    """Toggle a to_do block's checked state"""
+    try:
+        data = request.json or {}
+        api_token = data.get('api_token')
+        checked = data.get('checked', False)
+        
+        if not api_token:
+            return jsonify({"error": "API token required"}), 400
+        
+        headers = get_notion_headers(api_token)
+        
+        response = requests.patch(
+            f"{NOTION_API_BASE}/blocks/{block_id}",
+            headers=headers,
+            json={"to_do": {"checked": checked}}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            return jsonify({"success": True, "checked": checked})
+        else:
+            return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
 if __name__ == '__main__':
     app.run(debug=True, host='0.0.0.0', port=5009)
 

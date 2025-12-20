@@ -1,4 +1,4 @@
-// D:\GCC6\GCC6\integrationstore\src\pages\InventoryManagement.jsx
+
 import React, { useEffect, useState } from 'react';
 import { collection, getDocs, doc, updateDoc, deleteDoc } from 'firebase/firestore';
 import { db } from '../config/FirebaseConfig';
@@ -231,7 +231,7 @@ function InventoryManagement() {
                         </span>
                       </div>
                     </div>
-                    
+
                     <div className="product-info">
                       <h4 className="product-name" title={product.Name}>
                         {product.Name || product.ProductID || 'Unnamed Product'}
