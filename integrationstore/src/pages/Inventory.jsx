@@ -1,4 +1,4 @@
-// D:\GCC6\GCC6\integrationstore\src\pages\InventoryManagement.jsx
+
 import React, { useEffect, useState } from 'react';
 import {
   collection,
@@ -149,58 +149,58 @@ function InventoryManagement() {
         }}
       >
         {COLLECTIONS.map((col) => {
-  const label = col
-    .replace('DesignerMetal&MetalFrame', 'Designer Metal')
-    .replace('FrameLess', 'Frame Less')
-    .replace('FullFrame', 'Full Frame')
-    .replace('HalfFrame', 'Half Frame')
-    .replace('SafetyGlassess', 'Safety Glasses')
-    .replace('Sunglassess', 'Sunglasses');
+          const label = col
+            .replace('DesignerMetal&MetalFrame', 'Designer Metal')
+            .replace('FrameLess', 'Frame Less')
+            .replace('FullFrame', 'Full Frame')
+            .replace('HalfFrame', 'Half Frame')
+            .replace('SafetyGlassess', 'Safety Glasses')
+            .replace('Sunglassess', 'Sunglasses');
 
-  return (
-    <button
-      key={col}
-      onClick={() => setActiveCollection(col)}
-      style={{
-        borderRadius: 18,
-        border:
-          activeCollection === col
-            ? '2px solid rgba(96,165,250,0.9)'
-            : '1px solid rgba(148,163,184,0.4)',
-        padding: '16px',
-        background:
-          activeCollection === col
-            ? 'linear-gradient(135deg,#e0f2fe,#f5f3ff)'
-            : 'linear-gradient(135deg,#020617,#0b1120)',
-        color: activeCollection === col ? '#0f172a' : '#e5e7eb',
-        cursor: 'pointer',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        boxShadow:
-          activeCollection === col
-            ? '0 8px 20px rgba(59,130,246,0.35)'
-            : '0 4px 10px rgba(15,23,42,0.9)',
-      }}
-    >
-      <div
-        style={{
-          width: '100%',
-          height: 70,
-          borderRadius: 999,
-          border: '2px solid currentColor',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 700,
-          fontSize: 16,
-        }}
-      >
-        {label}
-      </div>
-    </button>
-  );
-})}
+          return (
+            <button
+              key={col}
+              onClick={() => setActiveCollection(col)}
+              style={{
+                borderRadius: 18,
+                border:
+                  activeCollection === col
+                    ? '2px solid rgba(96,165,250,0.9)'
+                    : '1px solid rgba(148,163,184,0.4)',
+                padding: '16px',
+                background:
+                  activeCollection === col
+                    ? 'linear-gradient(135deg,#e0f2fe,#f5f3ff)'
+                    : 'linear-gradient(135deg,#020617,#0b1120)',
+                color: activeCollection === col ? '#0f172a' : '#e5e7eb',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow:
+                  activeCollection === col
+                    ? '0 8px 20px rgba(59,130,246,0.35)'
+                    : '0 4px 10px rgba(15,23,42,0.9)',
+              }}
+            >
+              <div
+                style={{
+                  width: '100%',
+                  height: 70,
+                  borderRadius: 999,
+                  border: '2px solid currentColor',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 700,
+                  fontSize: 16,
+                }}
+              >
+                {label}
+              </div>
+            </button>
+          );
+        })}
 
       </div>
 
