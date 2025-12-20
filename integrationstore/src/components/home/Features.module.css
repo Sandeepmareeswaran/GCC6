@@ -1,0 +1,119 @@
+.featuresContainer {
+  max-width: 1400px;
+  margin: 0;
+  padding: 0 2.5rem 2.5rem 2.5rem;
+  display: flex;
+  flex-direction: row;
+  gap: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+.card {
+  background: #fff;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 2px 8px rgba(2,6,23,0.04);
+  display: flex;
+  gap: 0.9rem;
+  align-items: flex-start;
+  min-width: 0;
+}
+
+.iconWrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  background: #ecfdf5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #065f46;
+  font-weight: 700;
+}
+
+.cardTitle { font-weight: 700; color: #0f172a; margin-bottom: 0.25rem; }
+.cardDesc { color: #64748b; font-size: 0.95rem; }
+
+@media (max-width: 900px) {
+  .featuresContainer { padding: 0 0.5rem 1.5rem 0.5rem; }
+  .grid { grid-template-columns: repeat(2,1fr); gap: 1rem; }
+}
+@media (max-width: 520px) {
+  .featuresContainer { padding: 0 0.2rem 1rem 0.2rem; }
+  .grid { grid-template-columns: 1fr; gap: 0.7rem; }
+}
+.featuresRoot {
+  /* container-level tweaks for feature area */
+}
+
+.featureCard {
+  min-height: 150px;
+  display: flex;
+  align-items: flex-start;
+  padding: 1rem 1.25rem;
+  transition: transform 180ms ease, box-shadow 180ms ease;
+}
+
+.featureIconBox {
+  width: 56px;
+  height: 56px;
+  flex: 0 0 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.featureTitle {
+  margin-bottom: 0.25rem;
+}
+
+.featureBody {
+  color: #4b5563; /* gray-600 */
+}
+
+.featureCard:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 12px 30px rgba(2,6,23,0.08);
+}
+
+@media (max-width: 768px) {
+  .featureCard { min-height: 120px; }
+  .featureIconBox { width: 44px; height: 44px; }
+}
+
+/* Desktop-emulation helpers: horizontal scroll wrapper + snap + responsive scaling */
+.desktopWrapper {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(300px, 1fr));
+  gap: 1rem;
+}
+
+@media (max-width: 900px) {
+  .desktopWrapper {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+  .featureCard {
+    flex: 0 0 340px;
+    min-width: 300px;
+    scroll-snap-align: center;
+  }
+}
+
+@media (max-width: 600px) {
+  .featureCard { transform: scale(0.95); }
+}

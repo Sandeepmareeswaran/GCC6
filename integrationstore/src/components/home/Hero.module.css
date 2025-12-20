@@ -1,0 +1,173 @@
+.hero {
+  display: flex;
+  align-items: flex-start;
+  justify-content: flex-start;
+  gap: 2.5rem;
+  padding: 0 2.5rem 0 2.5rem;
+  max-width: 1400px;
+  margin: 0;
+  background: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.content {
+  flex: 1 1 540px;
+  text-align: left;
+  padding-top: 2.5rem;
+  padding-bottom: 2.5rem;
+}
+
+.eyebrow {
+  color: #10b981;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.title {
+  font-size: 2.25rem;
+  line-height: 1.05;
+  color: #0f172a;
+  margin: 0 0 1rem 0;
+  font-weight: 800;
+}
+
+.subtitle {
+  color: #475569;
+  margin-bottom: 1.25rem;
+}
+
+.ctaRow {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.primaryBtn {
+  background: #059669;
+  color: white;
+  padding: 0.6rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 600;
+  border: none;
+}
+
+.secondaryBtn {
+  background: transparent;
+  color: #065f46;
+  padding: 0.5rem 0.9rem;
+  border-radius: 0.5rem;
+  border: 1px solid #e6f4ea;
+  font-weight: 600;
+}
+
+.visual {
+  flex: 0 0 340px;
+  background: #10b981;
+  border-radius: 12px;
+  height: 220px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: none;
+}
+
+.visualPlaceholder {
+  color: #fff;
+  font-weight: 700;
+  font-size: 1.3rem;
+  letter-spacing: 0.01em;
+}
+
+@media (max-width: 900px) {
+  .hero { flex-direction: column-reverse; padding: 0.5rem 0.5rem; align-items: flex-start; }
+  .visual { width: 100%; height: 180px; margin-bottom: 1.5rem; }
+  .title { font-size: 1.3rem; }
+  .content { text-align: left; padding-top: 1.2rem; padding-bottom: 1.2rem; }
+}
+.heroRoot {
+  /* small extra horizontal padding on very wide screens */
+  padding-top: 6px;
+}
+
+.heroTitle {
+  letter-spacing: -0.02em;
+}
+
+.heroSubtitle {
+  max-width: 58ch;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.offerAside {
+  /* ensure the aside looks slightly elevated and aligns visually */
+  border-radius: 12px;
+}
+
+.miniCard {
+  min-height: 96px;
+}
+
+.miniCardIcon {
+  width: 40px;
+  height: 40px;
+}
+
+.ctaPrimary {
+  box-shadow: 0 8px 26px rgba(34,197,94,0.14);
+}
+
+.cardsGrid {
+  gap: 1rem;
+}
+
+/* Hero specific banner area */
+.heroBanner {
+  background: linear-gradient(180deg, rgba(249,250,251,0.6) 0%, rgba(255,255,255,0.6) 100%);
+  border-radius: 12px;
+  padding: 28px;
+}
+
+.offerAside {
+  box-shadow: 0 6px 24px rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .heroBanner { padding: 18px; }
+  .heroSubtitle { max-width: 44ch; }
+}
+
+/* Desktop-emulation helpers: horizontal scroll wrapper + snap + responsive scaling */
+.desktopWrapper {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(280px, 1fr));
+  gap: 1rem;
+  align-items: start;
+}
+
+/* On narrower viewports switch to a single-row horizontal scroller with snap */
+@media (max-width: 900px) {
+  .desktopWrapper {
+    display: flex;
+    flex-direction: row;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    gap: 1rem;
+    padding-bottom: 8px;
+    scroll-snap-type: x mandatory;
+  }
+  .miniCard {
+    flex: 0 0 320px;
+    min-width: 280px;
+    scroll-snap-align: center;
+  }
+}
+
+/* Responsive scaling to keep a 3-column impression when space is tight */
+@media (max-width: 600px) {
+  .miniCard {
+    transform: scale(0.92);
+  }
+}

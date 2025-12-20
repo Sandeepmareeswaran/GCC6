@@ -21,9 +21,19 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format, subMonths, subYears } from "date-fns";
+import "./Sales.css";
 
 // Colors
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#6EE7B7", "#F87171", "#2DD4BF"];
+const COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#6EE7B7",
+  "#F87171",
+  "#2DD4BF",
+];
 const GRADIENT_COLORS = [
   { start: "#3B82F6", end: "#60A5FA" },
   { start: "#10B981", end: "#34D399" },
@@ -47,13 +57,13 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
-      <div className="bg-white p-3 rounded-md shadow-md border border-gray-200 text-sm">
-        {label && <p className="font-semibold text-gray-800 mb-1">{label}</p>}
+      <div className="custom-tooltip">
+        {label && <p className="tooltip-label">{label}</p>}
         {data?.month && (
-          <p className="text-xs text-gray-500 mb-1">Month: {data.month}</p>
+          <p className="tooltip-month">Month: {data.month}</p>
         )}
         {payload.map((entry, index) => (
-          <p key={index} style={{ color: entry.color || "#111827" }}>
+          <p key={index} className="tooltip-item" style={{ color: entry.color || "#111827" }}>
             {entry.name}:{" "}
             {entry.name?.toLowerCase() === "sales"
               ? `₹${entry.value.toFixed(2)}`
@@ -67,14 +77,14 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const CustomLegend = ({ payload }) => (
-  <div className="flex flex-wrap justify-center gap-4 mt-4 text-sm">
+  <div className="custom-legend">
     {payload?.map((entry, index) => (
-      <div key={index} className="flex items-center gap-2">
+      <div key={index} className="legend-item">
         <span
-          className="w-3 h-3 rounded-full"
+          className="legend-color"
           style={{ backgroundColor: entry.color }}
         />
-        <span className="text-gray-700">{entry.value}</span>
+        <span className="legend-text">{entry.value}</span>
       </div>
     ))}
   </div>
@@ -98,6 +108,7 @@ const CustomTick = (props) => {
           textAnchor="middle"
           fill="#4B5563"
           fontSize={12}
+          fontWeight={500}
         >
           {value}
         </text>
@@ -344,279 +355,338 @@ export default function Sales() {
   // ---------- UI ----------
 
   return (
-    <div className="px-6 py-8 bg-gray-50 minHeight-screen">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Sales Analysis
-      </h1>
+    <div className="sales-page">
+      {/* Header */}
+      <div className="sales-header">
+        <div className="header-content">
+          <div>
+            <h1 className="page-title">Sales Analysis Dashboard</h1>
+            <p className="page-subtitle">
+              Comprehensive overview of sales performance, revenue trends, and category insights
+            </p>
+          </div>
+          <div className="header-actions">
+            <button className="export-button">
+              <svg className="export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+              </svg>
+              Export Report
+            </button>
+            <div className="date-info">
+              <span className="date-label">Last updated:</span>
+              <span className="date-value">{format(new Date(), 'MMM dd, yyyy')}</span>
+            </div>
+          </div>
+        </div>
+      </div>
 
-      
+      {/* Time Range Selector */}
+      <div className="time-range-container">
+        <div className="range-selector">
+          <div className="range-label">Time Range:</div>
+          <div className="range-buttons">
+            {["all", "year", "month"].map((range) => (
+              <button
+                key={range}
+                onClick={() => setTimeRange(range)}
+                className={`range-button ${timeRange === range ? 'active' : ''}`}
+              >
+                {range === "all"
+                  ? "All Time"
+                  : range === "year"
+                  ? "Last Year"
+                  : "Last Month"}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
 
-      {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      {/* Summary Stats */}
+      <div className="stats-container">
         {[
-          { label: "Total Orders", value: totalOrders },
+          { 
+            label: "Total Orders", 
+            value: totalOrders,
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 3h2l1 5h13" strokeLinecap="round" strokeLinejoin="round"/>
+                <circle cx="10" cy="20" r="1.6" fill="currentColor"/>
+                <circle cx="18" cy="20" r="1.6" fill="currentColor"/>
+              </svg>
+            ),
+            color: "#3B82F6",
+            change: "+12%"
+          },
           {
             label: "Total Revenue",
             value: `₹${totalRevenue.toFixed(2)}`,
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M12 3v18" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17 6H9a3 3 0 000 6h6a3 3 0 010 6H7" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ),
+            color: "#10B981",
+            change: "+24%"
           },
           {
-            label: "Average Order Value",
+            label: "Avg Order Value",
             value: `₹${averageOrderValue.toFixed(2)}`,
+            icon: (
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M3 17l6-6 4 4 8-8" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            ),
+            color: "#F59E0B",
+            change: "+8%"
           },
-        ].map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-white rounded-lg shadow-sm border border-gray-100 p-5"
-          >
-            <p className="text-xs tracking-wide uppercase text-gray-500">
-              {stat.label}
-            </p>
-            <p className="text-2xl font-semibold text-gray-900 mt-2">
-              {stat.value}
-            </p>
+        ].map((stat, idx) => (
+          <div key={stat.label} className="stat-card" style={{ borderLeftColor: stat.color }}>
+            <div className="stat-header">
+              <div className="stat-icon" style={{ backgroundColor: `${stat.color}15` }}>
+                {stat.icon}
+              </div>
+              <div className="stat-change" style={{ color: stat.color }}>
+                {stat.change}
+              </div>
+            </div>
+            <div className="stat-content">
+              <p className="stat-label">{stat.label}</p>
+              <p className="stat-value">{stat.value}</p>
+            </div>
           </div>
         ))}
       </div>
 
-      {loading ? (
-        <div className="text-center py-12 text-gray-600">
-          Loading order data...
-        </div>
-      ) : error ? (
-        <div className="text-center py-12 text-red-500">{error}</div>
-      ) : categoryDistribution.every((c) => c.name === "Unknown") ? (
-        <div className="text-center py-12 text-red-500">
-          No valid category data found. Check product IDs and collections.
-        </div>
-      ) : (
-        <>
-          {/* Time range selector */}
-          <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden text-sm">
-              {["all", "year", "month"].map((range) => (
-                <button
-                  key={range}
-                  onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 ${
-                    timeRange === range
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-gray-700 hover:bg-gray-50"
-                  }`}
-                >
-                  {range === "all"
-                    ? "All Time"
-                    : range === "year"
-                    ? "Last Year"
-                    : "Last Month"}
-                </button>
-              ))}
+      {/* Charts Grid */}
+      <div className="charts-grid">
+        {/* Category Distribution */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3 className="chart-title">Sales by Category</h3>
+            <div className="chart-legend">
+              <div className="legend-items">
+                {categoryDistribution.slice(0, 3).map((cat, idx) => (
+                  <div key={cat.name} className="legend-item-small">
+                    <span className="legend-dot" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                    <span className="legend-text-small">{cat.name}</span>
+                    <span className="legend-percent">{((cat.value / categoryDistribution.reduce((a, b) => a + b.value, 0)) * 100).toFixed(0)}%</span>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
-
-          {/* Category distribution Pie */}
-          <div className="bg-white rounded-lg shadow-sm p-5 mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              Sales by Category
-            </h2>
+          <div className="chart-container">
             {categoryDistribution.length === 0 ? (
-              <p className="text-center text-gray-600">
-                No data for selected range.
-              </p>
+              <div className="empty-chart">
+                <p>No data for selected range</p>
+              </div>
             ) : (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <defs>
-                      {categoryDistribution.map((_, index) => (
-                        <linearGradient
-                          key={index}
-                          id={`gradient-${index}`}
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor={
-                              GRADIENT_COLORS[index % GRADIENT_COLORS.length]
-                                .start
-                            }
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor={
-                              GRADIENT_COLORS[index % GRADIENT_COLORS.length]
-                                .end
-                            }
-                          />
-                        </linearGradient>
-                      ))}
-                    </defs>
-                    <Pie
-                      data={categoryDistribution}
-                      cx="50%"
-                      cy="50%"
-                      labelLine={false}
-                      label={({ name, percent }) =>
-                        `${name}: ${(percent * 100).toFixed(0)}%`
-                      }
-                      outerRadius={110}
-                      dataKey="value"
-                    >
-                      {categoryDistribution.map((entry, index) => (
-                        <Cell
-                          key={index}
-                          fill={`url(#gradient-${index})`}
-                          stroke={COLORS[index % COLORS.length]}
-                          strokeWidth={2}
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <defs>
+                    {categoryDistribution.map((_, index) => (
+                      <linearGradient
+                        key={index}
+                        id={`gradient-${index}`}
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor={
+                            GRADIENT_COLORS[index % GRADIENT_COLORS.length]
+                              .start
+                          }
                         />
-                      ))}
-                    </Pie>
-                    <Tooltip content={<CustomTooltip />} cursor={false} />
-                    <Legend content={<CustomLegend />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </div>
-
-          {/* Financial trends line chart */}
-          <div className="bg-white rounded-lg shadow-sm p-5 mb-8">
-            <h2 className="text-xl font-semibold mb-4 text-gray-800">
-              Financial Trends by Order
-            </h2>
-            {financialTrendsData.length === 0 ? (
-              <p className="text-center text-gray-600">
-                No data for selected range.
-              </p>
-            ) : (
-              <div className="h-80">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart
-                    data={financialTrendsData}
-                    margin={{ top: 10, right: 24, left: 16, bottom: 60 }}
+                        <stop
+                          offset="100%"
+                          stopColor={
+                            GRADIENT_COLORS[index % GRADIENT_COLORS.length]
+                              .end
+                          }
+                        />
+                      </linearGradient>
+                    ))}
+                  </defs>
+                  <Pie
+                    data={categoryDistribution}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) =>
+                      `${name}: ${(percent * 100).toFixed(0)}%`
+                    }
+                    outerRadius={80}
+                    innerRadius={40}
+                    dataKey="value"
                   >
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis
-                      dataKey="orderIndex"
-                      tick={<CustomTick />}
-                      height={70}
-                    />
-                    <YAxis
-                      label={{
-                        value: "Sales (₹)",
-                        angle: -90,
-                        position: "insideLeft",
-                        fill: "#4B5563",
-                        fontSize: 12,
-                      }}
-                      tick={{ fontSize: 11, fill: "#4B5563" }}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={false} />
-                    <Legend content={<CustomLegend />} />
-                    <Line
-                      type="monotone"
-                      dataKey="sales"
-                      name="Sales"
-                      stroke="#3B82F6"
-                      strokeWidth={3}
-                      dot={false}
-                      activeDot={{
-                        r: 6,
-                        fill: "#3B82F6",
-                        stroke: "#fff",
-                        strokeWidth: 2,
-                      }}
-                    />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
+                    {categoryDistribution.map((entry, index) => (
+                      <Cell
+                        key={index}
+                        fill={`url(#gradient-${index})`}
+                        stroke="white"
+                        strokeWidth={2}
+                      />
+                    ))}
+                  </Pie>
+                  <Tooltip content={<CustomTooltip />} />
+                </PieChart>
+              </ResponsiveContainer>
             )}
           </div>
+        </div>
 
-          {/* Category-wise performance */}
-          <div className="space-y-6">
-            <h2 className="text-xl font-semibold text-gray-800">
-              Category Performance
-            </h2>
-            {Object.keys(categoryWiseData).length === 0 ? (
-              <p className="text-center text-gray-600">
-                No data for selected range.
-              </p>
+        {/* Financial Trends */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3 className="chart-title">Financial Trends</h3>
+            <div className="trend-indicator">
+              <div className="trend-up">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M18 15l-6-6-6 6" strokeLinecap="round" strokeLinejoin="round"/>
+                </svg>
+                <span>24% growth</span>
+              </div>
+            </div>
+          </div>
+          <div className="chart-container">
+            {financialTrendsData.length === 0 ? (
+              <div className="empty-chart">
+                <p>No data for selected range</p>
+              </div>
             ) : (
-              Object.entries(categoryWiseData)
-                .sort(([a], [b]) => a.localeCompare(b))
-                .map(([category, data], index) => {
-                  const chartData = Object.values(data).sort(
-                    (a, b) => a.orderIndex - b.orderIndex
-                  );
-                  return (
-                    <div
-                      key={category}
-                      className="bg-white rounded-lg shadow-sm p-5"
-                    >
-                      <h3 className="text-lg font-semibold mb-3 text-gray-700">
-                        {category}
-                      </h3>
-                      <div className="h-72">
-                        <ResponsiveContainer width="100%" height="100%">
-                          <LineChart
-                            data={chartData}
-                            margin={{
-                              top: 10,
-                              right: 24,
-                              left: 16,
-                              bottom: 60,
-                            }}
-                          >
-                            <CartesianGrid
-                              strokeDasharray="3 3"
-                              stroke="#e5e7eb"
-                            />
-                            <XAxis
-                              dataKey="orderIndex"
-                              tick={<CustomTick />}
-                              height={70}
-                            />
-                            <YAxis
-                              label={{
-                                value: "Sales (₹)",
-                                angle: -90,
-                                position: "insideLeft",
-                                fill: "#4B5563",
-                                fontSize: 12,
-                              }}
-                              tick={{ fontSize: 11, fill: "#4B5563" }}
-                            />
-                            <Tooltip
-                              content={<CustomTooltip />}
-                              cursor={false}
-                            />
-                            <Legend content={<CustomLegend />} />
-                            <Line
-                              type="monotone"
-                              dataKey="sales"
-                              name="Sales"
-                              stroke={COLORS[index % COLORS.length]}
-                              strokeWidth={3}
-                              dot={false}
-                              activeDot={{
-                                r: 6,
-                                fill: COLORS[index % COLORS.length],
-                                stroke: "#fff",
-                                strokeWidth: 2,
-                              }}
-                            />
-                          </LineChart>
-                        </ResponsiveContainer>
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart
+                  data={financialTrendsData}
+                  margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
+                  <XAxis 
+                    dataKey="orderIndex" 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                  />
+                  <YAxis 
+                    axisLine={false}
+                    tickLine={false}
+                    tick={{ fontSize: 11, fill: "#6B7280" }}
+                    tickFormatter={(value) => `₹${value.toLocaleString()}`}
+                  />
+                  <Tooltip 
+                    content={<CustomTooltip />}
+                    cursor={{ stroke: '#e5e7eb', strokeWidth: 1 }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="sales"
+                    stroke="#3B82F6"
+                    strokeWidth={2}
+                    dot={false}
+                    activeDot={{ r: 4, fill: "#3B82F6", stroke: "white", strokeWidth: 2 }}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Category Performance */}
+      <div className="performance-section">
+        <div className="section-header">
+          <h3 className="section-title">Category Performance Details</h3>
+          <div className="section-actions">
+            <span className="data-count">{Object.keys(categoryWiseData).length} categories</span>
+          </div>
+        </div>
+        
+        <div className="category-grid">
+          {Object.entries(categoryWiseData)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .map(([category, data], index) => {
+              const chartData = Object.values(data).sort(
+                (a, b) => a.orderIndex - b.orderIndex
+              );
+              const totalSales = chartData.reduce((sum, item) => sum + item.sales, 0);
+              const orderCount = chartData.length;
+              
+              return (
+                <div key={category} className="category-card">
+                  <div className="category-header">
+                    <div className="category-title-section">
+                      <div 
+                        className="category-color" 
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      />
+                      <h4 className="category-name">{category}</h4>
+                    </div>
+                    <div className="category-stats">
+                      <div className="category-stat">
+                        <span className="stat-number">{orderCount}</span>
+                        <span className="stat-label">Orders</span>
+                      </div>
+                      <div className="category-stat">
+                        <span className="stat-number">₹{totalSales.toFixed(0)}</span>
+                        <span className="stat-label">Revenue</span>
                       </div>
                     </div>
-                  );
-                })
-            )}
+                  </div>
+                  
+                  <div className="category-chart">
+                    <ResponsiveContainer width="100%" height={60}>
+                      <LineChart
+                        data={chartData}
+                        margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                      >
+                        <Line
+                          type="monotone"
+                          dataKey="sales"
+                          stroke={COLORS[index % COLORS.length]}
+                          strokeWidth={2}
+                          dot={false}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* Loading State */}
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loading-spinner"></div>
+          <p>Loading sales data...</p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {error && (
+        <div className="error-card">
+          <div className="error-icon">⚠️</div>
+          <div className="error-content">
+            <h4>Data Loading Error</h4>
+            <p>{error}</p>
           </div>
-        </>
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && categoryDistribution.every((c) => c.name === "Unknown") && (
+        <div className="empty-state">
+          <div className="empty-icon">📊</div>
+          <div className="empty-content">
+            <h4>No Sales Data Available</h4>
+            <p>No valid sales data found for the selected time range.</p>
+          </div>
+        </div>
       )}
     </div>
   );

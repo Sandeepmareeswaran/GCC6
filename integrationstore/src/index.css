@@ -62,8 +62,9 @@ body {
 
 .main-content {
           flex: 1;
-          margin-left: 80px;
-          padding: 30px;
+          /* match the fixed sidebar width (210px) plus breathing room */
+          margin-left: 240px;
+          padding: 40px 48px;
           background: var(--content-bg);
 }
 
@@ -176,3 +177,43 @@ body {
 .input::placeholder {
           color: var(--content-text-muted);
 }
+
+/* Simple entrance animations */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes floatPulse {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+    100% { transform: translateY(0); }
+}
+
+.fade-in {
+    animation: fadeIn 520ms cubic-bezier(.2,.9,.3,1) both;
+}
+.slide-up {
+    animation: slideUp 560ms cubic-bezier(.2,.9,.3,1) both;
+}
+.float-pulse {
+    animation: floatPulse 3s ease-in-out infinite;
+}
+
+/* simple animation delay utilities */
+.anim-delay-100 { animation-delay: 100ms; }
+.anim-delay-200 { animation-delay: 200ms; }
+.anim-delay-300 { animation-delay: 300ms; }
+.anim-delay-400 { animation-delay: 400ms; }
+
+/* Card hover lift */
+.card-raise { transition: transform 220ms ease, box-shadow 220ms ease; }
+.card-raise:hover { transform: translateY(-6px); box-shadow: var(--shadow-lg); }
+
+/* Subtle focus ring for CTAs */
+.focus-ring:focus { outline: none; box-shadow: 0 0 0 4px rgba(34,197,94,0.12); border-radius: var(--radius-md); }
