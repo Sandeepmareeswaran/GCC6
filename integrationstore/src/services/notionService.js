@@ -1,6 +1,6 @@
 // Notion Service - API calls for Notion integration
 
-const API_BASE = 'http://localhost:5009/api/notion';
+const API_BASE = 'https://jira-api.outliersunited.com/api/notion';
 
 let credentials = {
           apiToken: null,

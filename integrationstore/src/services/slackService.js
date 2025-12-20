@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5009/api/slack';
+const API_BASE = 'https://jira-api.outliersunited.com/api/slack';
 
 // Get credentials from localStorage
 const getCredentials = () => {

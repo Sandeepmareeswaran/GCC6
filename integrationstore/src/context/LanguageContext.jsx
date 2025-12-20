@@ -9,7 +9,7 @@ export const LANGUAGES = {
           ta: { code: 'ta', name: 'Tamil', nativeName: 'தமிழ்', flag: '🇮🇳' },
 };
 
-const API_BASE = 'http://localhost:5009';
+const API_BASE = 'https://jira-api.outliersunited.com';
 
 export function LanguageProvider({ children }) {
           const [language, setLanguageState] = useState(() => {

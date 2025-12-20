@@ -3,7 +3,7 @@ import { useLanguage } from '../../context/LanguageContext';
 import { useTheme } from '../../context/ThemeContext';
 import './ChatbotWidget.css';
 
-const API_BASE = 'http://localhost:5009';
+const API_BASE = 'https://jira-api.outliersunited.com';
 
 // Simple markdown parser for chat messages
 function parseMarkdown(text) {
