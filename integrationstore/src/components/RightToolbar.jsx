@@ -21,6 +21,8 @@ const items = [
 export default function RightToolbar() {
   const [open, setOpen] = useState(false);
   const [order, setOrder] = useState(items.map((i) => i.id));
+  const [activeId, setActiveId] = useState(null);
+  const asideRef = React.useRef(null);
 
   const itemsById = useMemo(() => {
     const map = {};
@@ -42,8 +44,17 @@ export default function RightToolbar() {
   const VISIBLE_LIMIT = 4;
   const hiddenCount = Math.max(0, items.length - VISIBLE_LIMIT);
 
+  React.useEffect(() => {
+    function handleDocClick(e) {
+      if (!asideRef.current) return;
+      if (!asideRef.current.contains(e.target)) setActiveId(null);
+    }
+    document.addEventListener('mousedown', handleDocClick);
+    return () => document.removeEventListener('mousedown', handleDocClick);
+  }, []);
+
   return (
-    <aside className={`right-toolbar ${open ? 'expanded' : 'collapsed'}`} aria-label="Quick access tools">
+    <aside ref={asideRef} className={`right-toolbar ${open ? 'expanded' : 'collapsed'}`} aria-label="Quick access tools">
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
           <div className="rt-inner">
@@ -52,7 +63,7 @@ export default function RightToolbar() {
                 // expanded: show all items
                 <>
                   {order.map((id) => (
-                    <SortableItem key={id} item={itemsById[id]} />
+                    <SortableItem key={id} item={itemsById[id]} activeId={activeId} onToggleLabel={(id) => setActiveId((p) => (p === id ? null : id))} />
                   ))}
                 </>
               )
@@ -60,7 +71,7 @@ export default function RightToolbar() {
                 // collapsed: show first VISIBLE_LIMIT items
                 <>
                   {order.slice(0, VISIBLE_LIMIT).map((id) => (
-                    <SortableItem key={id} item={itemsById[id]} />
+                    <SortableItem key={id} item={itemsById[id]} activeId={activeId} onToggleLabel={(id) => setActiveId((p) => (p === id ? null : id))} />
                   ))}
                 </>
               )}
@@ -68,13 +79,15 @@ export default function RightToolbar() {
             {/* always render the small circular toggle under the 4th item */}
             <div className="rt-item rt-toggle-wrapper rt-toggle-positioned">
               <button
-                className="rt-toggle minimal"
+                className={`rt-toggle minimal ${open ? 'open' : ''}`}
                 onClick={() => setOpen((v) => !v)}
                 aria-expanded={open}
                 aria-label={open ? 'Collapse toolbar' : 'Expand toolbar'}
                 title={open ? 'Collapse' : 'Show more'}
               >
-                <span className="rt-toggle-arrow" aria-hidden>↓</span>
+                <svg className="rt-chevron" viewBox="0 0 24 24" aria-hidden focusable="false">
+                  <path d="M6 9 L12 15 L18 9" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="square" strokeLinejoin="miter" />
+                </svg>
               </button>
             </div>
           </div>
@@ -86,7 +99,7 @@ export default function RightToolbar() {
   );
 }
 
-function SortableItem({ item }) {
+function SortableItem({ item, activeId, onToggleLabel }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: item.id });
   const style = {
     transform: CSS.Transform.toString(transform),
@@ -94,15 +107,73 @@ function SortableItem({ item }) {
     zIndex: isDragging ? 9999 : 'auto',
     opacity: isDragging ? 0.85 : 1,
   };
+  const localRef = React.useRef(null);
+  const [labelPos, setLabelPos] = React.useState(null);
+
+  function handleClick(e) {
+    // show label and open link immediately in a new tab
+    const isActive = activeId === item.id;
+    if (typeof onToggleLabel === 'function') onToggleLabel(item.id);
+
+    if (!isActive) {
+      try {
+        window.open(item.href, '_blank', 'noopener,noreferrer');
+      } catch (err) {
+        const w = window.open();
+        if (w) w.location = item.href;
+      }
+    }
+
+    // compute label position when activated
+    if (!isActive && localRef.current) {
+      const r = localRef.current.getBoundingClientRect();
+      // position the label relative to the element's right edge
+      const rightPx = Math.round(window.innerWidth - r.right + 8);
+      const topPx = Math.round(r.top + r.height / 2);
+      setLabelPos({ right: rightPx, top: topPx });
+    }
+  }
+
+  const isActive = activeId === item.id;
+
+  // clear pending timer when active state becomes false or on unmount
+  React.useEffect(() => {
+    return () => {};
+  }, [isActive]);
+
+  // recompute label position on resize/scroll while active
+  React.useEffect(() => {
+    if (!isActive) return;
+    function recompute() {
+      if (!localRef.current) return;
+      const r = localRef.current.getBoundingClientRect();
+      const rightPx = Math.round(window.innerWidth - r.right + 8);
+      const topPx = Math.round(r.top + r.height / 2);
+      setLabelPos({ right: rightPx, top: topPx });
+    }
+    window.addEventListener('resize', recompute);
+    window.addEventListener('scroll', recompute, true);
+    return () => {
+      window.removeEventListener('resize', recompute);
+      window.removeEventListener('scroll', recompute, true);
+    };
+  }, [isActive]);
+
+  const combinedRef = (el) => {
+    setNodeRef(el);
+    localRef.current = el;
+  };
 
   return (
-    <div ref={setNodeRef} style={style} {...attributes} {...listeners} className={`rt-item ${isDragging ? 'dragging' : ''}`} data-id={item.id}>
+    <div ref={combinedRef} style={style} {...attributes} {...listeners} className={`rt-item ${isDragging ? 'dragging' : ''}`} data-id={item.id}>
       <a
         className="rt-link"
         href={item.href}
-        title={item.label}
+        onClick={handleClick}
+        aria-expanded={isActive}
+        aria-label={item.label}
         target="_blank"
-        rel="noreferrer"
+        rel="noopener noreferrer"
       >
         <span className="rt-icon" aria-hidden>
           {getIcon(item.id)}
@@ -110,10 +181,12 @@ function SortableItem({ item }) {
         <span className="rt-label visually-hidden">{item.label}</span>
       </a>
 
-      <div className="rt-bubble" role="status" aria-live="polite">
-        <span className="rt-bubble-label">{item.label}</span>
-        <a className="rt-open" href={item.href} target="_blank" rel="noreferrer">Open</a>
-      </div>
+      {isActive && labelPos && (
+        <div className="rt-inline-label" role="status" aria-live="polite" style={{position: 'fixed', right: `${labelPos.right}px`, top: `${labelPos.top}px`, transform: 'translateY(-50%)'}}>
+          {item.label}
+        </div>
+      )}
+
     </div>
   );
 }

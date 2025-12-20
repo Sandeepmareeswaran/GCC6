@@ -1,3 +1,24 @@
+// Custom label for PieChart to prevent overlap and hiding
+function renderCustomizedLabel({ cx, cy, midAngle, innerRadius, outerRadius, percent, name }) {
+  const RADIAN = Math.PI / 180;
+  const radius = innerRadius + (outerRadius - innerRadius) * 1.15;
+  const x = cx + radius * Math.cos(-midAngle * RADIAN);
+  const y = cy + radius * Math.sin(-midAngle * RADIAN);
+  return (
+    <text
+      x={x}
+      y={y}
+      fill="#333"
+      textAnchor={x > cx ? 'start' : 'end'}
+      dominantBaseline="central"
+      fontSize={14}
+      fontWeight={500}
+      style={{ pointerEvents: 'none' }}
+    >
+      {`${name}: ${(percent * 100).toFixed(0)}%`}
+    </text>
+  );
+}
 // src/pages/Sales.jsx
 import React, { useState, useEffect } from "react";
 import {
@@ -137,6 +158,36 @@ const CustomTick = (props) => {
 
 export default function Sales() {
   const [orders, setOrders] = useState([]);
+    // Export sales data as CSV
+    const handleExport = () => {
+      if (!orders || orders.length === 0) {
+        alert('No sales data to export.');
+        return;
+      }
+      // Prepare CSV header
+      const header = ['Order ID', 'Product ID', 'Category', 'Date Ordered', 'Total Amount', 'Lens Option'];
+      // Prepare CSV rows
+      const rows = orders.map(order => [
+        order.id,
+        order.productId,
+        order.category,
+        order.dateOrdered instanceof Date ? order.dateOrdered.toLocaleDateString() : order.dateOrdered,
+        order.totalAmount,
+        order.lensOption
+      ]);
+      // Combine header and rows
+      const csvContent = [header, ...rows].map(e => e.join(",")).join("\n");
+      // Create a blob and download
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', 'sales_report.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    };
   const [timeRange, setTimeRange] = useState("all"); // all | year | month
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -366,7 +417,7 @@ export default function Sales() {
             </p>
           </div>
           <div className="header-actions">
-            <button className="export-button">
+            <button className="export-button" onClick={handleExport}>
               <svg className="export-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"/>
               </svg>
@@ -517,9 +568,7 @@ export default function Sales() {
                     cx="50%"
                     cy="50%"
                     labelLine={false}
-                    label={({ name, percent }) =>
-                      `${name}: ${(percent * 100).toFixed(0)}%`
-                    }
+                    label={renderCustomizedLabel}
                     outerRadius={80}
                     innerRadius={40}
                     dataKey="value"
@@ -533,6 +582,8 @@ export default function Sales() {
                       />
                     ))}
                   </Pie>
+
+                  label={renderCustomizedLabel}
                   <Tooltip content={<CustomTooltip />} />
                 </PieChart>
               </ResponsiveContainer>
@@ -638,11 +689,37 @@ export default function Sales() {
                   </div>
                   
                   <div className="category-chart">
-                    <ResponsiveContainer width="100%" height={60}>
+                    <ResponsiveContainer width="100%" height={100}>
                       <LineChart
                         data={chartData}
-                        margin={{ top: 5, right: 0, left: 0, bottom: 5 }}
+                        margin={{ top: 10, right: 10, left: 20, bottom: 30 }}
                       >
+                        {/* Y Axis Label */}
+                        <YAxis
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10, fill: "#6B7280" }}
+                          label={{
+                            value: "Sales (₹)",
+                            angle: -90,
+                            position: "insideLeft",
+                            offset: 10,
+                            style: { textAnchor: "middle", fill: "#6B7280", fontSize: 11 }
+                          }}
+                        />
+                        {/* X Axis Label */}
+                        <XAxis
+                          dataKey="orderIndex"
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 10, fill: "#6B7280" }}
+                          label={{
+                            value: "Order Sequence",
+                            position: "insideBottom",
+                            offset: -15,
+                            style: { textAnchor: "middle", fill: "#6B7280", fontSize: 11 }
+                          }}
+                        />
                         <Line
                           type="monotone"
                           dataKey="sales"

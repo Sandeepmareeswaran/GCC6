@@ -1,21 +1,23 @@
 .right-toolbar {
   position: fixed;
-  right: 12px;
+  right: 10px;
   top: 50%;
   transform: translateY(-50%);
   z-index: 9999;
-  width: 44px;
-  max-height: 80vh;
-  background: linear-gradient(180deg, rgba(255,255,255,0.65), rgba(255,255,255,0.28));
-  -webkit-backdrop-filter: blur(10px) saturate(130%);
-  backdrop-filter: blur(10px) saturate(130%);
-  border: 1px solid rgba(255,255,255,0.32);
-  box-shadow: 0 10px 30px rgba(12, 32, 63, 0.11);
-  border-radius: 14px;
-  overflow: hidden;
+  width: 48px;
+  max-height: 88vh;
+  padding: 4px;
+  background: linear-gradient(180deg, rgba(248,252,255,0.98), rgba(245,248,251,0.95));
+  -webkit-backdrop-filter: blur(6px) saturate(115%);
+  backdrop-filter: blur(6px) saturate(115%);
+  border: 1px solid #C8E6C9; /* light green border */
+  box-shadow: none; /* no glow */
+  border-radius: 9999px;
+  overflow: visible;
   display: flex;
   align-items: center;
-  transition: all 0.28s ease;
+  justify-content: center;
+  transition: all 180ms cubic-bezier(.2,.9,.2,1);
 }
 
 /* Invisible mode - transparent layout */
@@ -103,9 +105,11 @@
 .rt-inner {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 6px;
+  align-items: center;
+  padding: 3px 2px;
   width: 100%;
+  max-height: 80vh;
   overflow-y: auto;
 }
 
@@ -113,19 +117,17 @@
 .rt-toggle {
   appearance: none;
   border: 0;
-  background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(240,247,255,0.9));
-  width: 36px;
-  height: 36px;
-  margin: 6px auto 0 auto;
+  background: transparent;
+  width: 28px;
+  height: 28px;
+  margin: 2px auto 0 auto;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  color: #222;
+  color: #0b66d0;
   border-radius: 50%;
-  box-shadow: 0 8px 18px rgba(12,32,63,0.08), inset 0 1px 0 rgba(255,255,255,0.6);
-  border: 1px solid rgba(16,24,40,0.04);
-  transition: transform 160ms ease, background 120ms ease, box-shadow 120ms ease;
+  transition: transform 140ms ease, background 120ms ease, box-shadow 120ms ease;
 }
 
 .right-toolbar.invisible-mode .rt-toggle {
@@ -165,13 +167,24 @@
   background: transparent;
   box-shadow: none;
   border: 0;
-  border-radius: 0;
-  width: auto;
-  height: auto;
-  padding: 4px 2px;
+  width: 26px;
+  height: 26px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+}
+
+/* chevron SVG used for open/close */
+.rt-toggle .rt-chevron {
+  width: 16px;
+  height: 12px;
+  color: #111;
+  display: block;
+  transition: transform 180ms ease;
+}
+
+.rt-toggle.open .rt-chevron {
+  transform: rotate(180deg);
 }
 
 .rt-toggle.minimal .rt-toggle-icon {
@@ -191,23 +204,41 @@
   border: none;
 }
 
+
 .rt-item {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 6px;
+  width: 34px;
+  height: 34px;
+  background: #ffffff;
   text-decoration: none;
   color: #111;
-  border-radius: 6px;
-  transition: all 120ms ease;
+  border-radius: 50%;
+  transition: all 140ms cubic-bezier(.2,.9,.2,1);
   position: relative;
-  min-height: 28px;
-  border: 2px solid transparent;
+  border: 1px solid rgba(16,24,40,0.03);
+  box-shadow: 0 4px 12px rgba(12,32,63,0.06);
 }
 
 .rt-item:hover {
-  background: rgba(255,255,255,0.12);
-  transform: translateX(-3px);
+  transform: translateX(-1px) scale(1.01);
+  box-shadow: 0 8px 16px rgba(12,32,63,0.08);
+}
+
+/* Inline label shown when an icon is clicked */
+.rt-inline-label {
+  /* label is positioned via inline styles (fixed) so it sits outside toolbar */
+  background: #ffffff; /* white background */
+  color: #0F9D58; /* green text */
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: 0 6px 18px rgba(10, 30, 60, 0.08);
+  border: 1px solid rgba(15,157,88,0.12); /* subtle green border */
+  z-index: 10002;
 }
 
 .rt-item.dragging {
@@ -232,8 +263,8 @@
 }
 
 .rt-icon {
-  width: 18px;
-  height: 18px;
+  width: 16px;
+  height: 16px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -257,28 +288,7 @@
 
 /* Bubble shown on hover/focus */
 .rt-bubble {
-  display: none;
-  position: absolute;
-  right: 100%;
-  margin-right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: rgba(0, 0, 0, 0.85);
-  color: #fff;
-  padding: 8px 10px;
-  border-radius: 8px;
-  font-size: 13px;
-  white-space: nowrap;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  z-index: 10001;
-}
-
-.rt-item:hover .rt-bubble,
-.rt-item:focus-within .rt-bubble {
-  display: flex;
+  display: none !important;
 }
 
 .rt-bubble-label {
