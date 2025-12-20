@@ -1,0 +1,120 @@
+.page {
+  background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+}
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.title {
+  letter-spacing: -0.01em;
+}
+.subtitle {
+  color: #6b7280;
+  margin-top: 0.25rem;
+  font-size: 0.95rem;
+}
+.toolbar {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(1, minmax(0,1fr));
+  gap: 1rem;
+}
+@media (min-width: 768px) {
+  .statsGrid { grid-template-columns: repeat(3, minmax(0,1fr)); }
+}
+.statCard {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+.statIcon {
+  min-width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+}
+.statText {
+  display: flex;
+  flex-direction: column;
+}
+.card {
+  border-radius: 0.6rem;
+  box-shadow: 0 8px 30px rgba(2,6,23,0.04);
+}
+.rangeBtn {
+  transition: all 160ms ease;
+}
+.rangeBtn:hover {
+  transform: translateY(-2px);
+}
+.activeRange {
+  box-shadow: 0 6px 18px rgba(59,130,246,0.18);
+}
+.rangeGroup {
+  padding: 6px;
+  gap: 6px;
+  align-items: center;
+}
+.rangeButton {
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+.statLabel {
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  color: #6b7280;
+}
+.statValue {
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+.statIcon svg {
+  width: 26px;
+  height: 26px;
+}
+.statIcon {
+  min-width: 56px;
+  height: 56px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 700;
+}
+.statCard:hover {
+  transform: translateY(-4px);
+  transition: transform 180ms ease;
+}
+.emptyState {
+  padding: 2rem;
+  color: #6b7280;
+}
+.chartWrap {
+  min-height: 18rem;
+}
+.exportBtn {
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  background: linear-gradient(90deg,#06b6d4,#3b82f6);
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(59,130,246,0.12);
+}
+.exportBtn:active { transform: translateY(1px); }

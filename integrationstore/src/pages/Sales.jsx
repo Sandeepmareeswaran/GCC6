@@ -21,9 +21,19 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { format, subMonths, subYears } from "date-fns";
+import styles from "./Sales.module.css";
 
 // Colors
-const COLORS = ["#3B82F6", "#10B981", "#F59E0B", "#EF4444", "#8B5CF6", "#6EE7B7", "#F87171", "#2DD4BF"];
+const COLORS = [
+  "#3B82F6",
+  "#10B981",
+  "#F59E0B",
+  "#EF4444",
+  "#8B5CF6",
+  "#6EE7B7",
+  "#F87171",
+  "#2DD4BF",
+];
 const GRADIENT_COLORS = [
   { start: "#3B82F6", end: "#60A5FA" },
   { start: "#10B981", end: "#34D399" },
@@ -344,15 +354,23 @@ export default function Sales() {
   // ---------- UI ----------
 
   return (
-    <div className="px-6 py-8 bg-gray-50 minHeight-screen">
-      <h1 className="text-3xl font-bold mb-6 text-gray-800">
-        Sales Analysis
-      </h1>
+    <div className={`${styles.page} px-6 py-8 bg-gray-50 minHeight-screen`}>
+      <div className={styles.headerRow}>
+        <div>
+          <h1 className={`text-3xl font-bold mb-0 text-gray-800 ${styles.title}`}>
+            Sales Analysis
+          </h1>
+          <p className={styles.subtitle}>Overview of orders, revenue and category performance.</p>
+        </div>
+        <div className={styles.toolbar}>
+          <button className={styles.exportBtn} title="Export summary">Export CSV</button>
+        </div>
+      </div>
 
       
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className={`${styles.statsGrid} mb-8`}>
         {[
           { label: "Total Orders", value: totalOrders },
           {
@@ -363,17 +381,41 @@ export default function Sales() {
             label: "Average Order Value",
             value: `₹${averageOrderValue.toFixed(2)}`,
           },
-        ].map((stat) => (
+        ].map((stat, idx) => (
           <div
             key={stat.label}
-            className="bg-white rounded-lg shadow-sm border border-gray-100 p-5"
+            className={`bg-white rounded-lg shadow-sm border border-gray-100 p-5 ${styles.card} ${styles.statCard}`}
           >
-            <p className="text-xs tracking-wide uppercase text-gray-500">
-              {stat.label}
-            </p>
-            <p className="text-2xl font-semibold text-gray-900 mt-2">
-              {stat.value}
-            </p>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', width: '100%' }}>
+              <div
+                className={styles.statIcon}
+                style={{ background: COLORS[idx % COLORS.length] }}
+                aria-hidden
+              >
+                {idx === 0 ? (
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M3 3h2l1 5h13" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    <circle cx="10" cy="20" r="1.6" fill="rgba(255,255,255,0.95)"/>
+                    <circle cx="18" cy="20" r="1.6" fill="rgba(255,255,255,0.95)"/>
+                  </svg>
+                ) : idx === 1 ? (
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M12 3v18" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                    <path d="M17 6H9a3 3 0 000 6h6a3 3 0 010 6H7" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden>
+                    <path d="M3 17l6-6 4 4 8-8" stroke="rgba(255,255,255,0.95)" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
+                )}
+              </div>
+              <div style={{ flex: 1 }}>
+                <p className={`text-xs tracking-wide uppercase ${styles.statLabel}`}>
+                  {stat.label}
+                </p>
+                <p className={`${styles.statValue} mt-2`}>{stat.value}</p>
+              </div>
+            </div>
           </div>
         ))}
       </div>
@@ -392,14 +434,14 @@ export default function Sales() {
         <>
           {/* Time range selector */}
           <div className="flex justify-center mb-8">
-            <div className="inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden text-sm">
+            <div className={`inline-flex rounded-lg border border-gray-200 bg-white overflow-hidden text-sm ${styles.rangeGroup}`}>
               {["all", "year", "month"].map((range) => (
                 <button
                   key={range}
                   onClick={() => setTimeRange(range)}
-                  className={`px-4 py-2 ${
+                  className={`${styles.rangeButton} ${styles.rangeBtn} ${
                     timeRange === range
-                      ? "bg-blue-600 text-white"
+                      ? `bg-blue-600 text-white ${styles.activeRange}`
                       : "bg-white text-gray-700 hover:bg-gray-50"
                   }`}
                 >
@@ -414,7 +456,7 @@ export default function Sales() {
           </div>
 
           {/* Category distribution Pie */}
-          <div className="bg-white rounded-lg shadow-sm p-5 mb-8">
+          <div className={`bg-white rounded-lg shadow-sm p-5 mb-8 ${styles.card}`}>
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
               Sales by Category
             </h2>
@@ -423,7 +465,7 @@ export default function Sales() {
                 No data for selected range.
               </p>
             ) : (
-              <div className="h-80">
+              <div className={`${styles.chartWrap} h-80`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <defs>
@@ -482,7 +524,7 @@ export default function Sales() {
           </div>
 
           {/* Financial trends line chart */}
-          <div className="bg-white rounded-lg shadow-sm p-5 mb-8">
+          <div className={`bg-white rounded-lg shadow-sm p-5 mb-8 ${styles.card}`}>
             <h2 className="text-xl font-semibold mb-4 text-gray-800">
               Financial Trends by Order
             </h2>
@@ -491,7 +533,7 @@ export default function Sales() {
                 No data for selected range.
               </p>
             ) : (
-              <div className="h-80">
+              <div className={`${styles.chartWrap} h-80`}>
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart
                     data={financialTrendsData}
@@ -554,12 +596,12 @@ export default function Sales() {
                   return (
                     <div
                       key={category}
-                      className="bg-white rounded-lg shadow-sm p-5"
+                      className={`bg-white rounded-lg shadow-sm p-5 ${styles.card}`}
                     >
                       <h3 className="text-lg font-semibold mb-3 text-gray-700">
                         {category}
                       </h3>
-                      <div className="h-72">
+                      <div className={`${styles.chartWrap} h-72`}>
                         <ResponsiveContainer width="100%" height="100%">
                           <LineChart
                             data={chartData}
