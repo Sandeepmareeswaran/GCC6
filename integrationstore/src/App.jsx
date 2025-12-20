@@ -14,6 +14,7 @@ import Inventory from './pages/Inventory';
 import Slackpage from './pages/Slackpage';
 import Sales from './pages/Sales';
 import NotionPage from './pages/NotionPage';
+
 function App() {
   const [showRegister, setShowRegister] = useState(false);
 
@@ -44,6 +45,7 @@ function App() {
           <Route path="/slack" element={<Slackpage />} />
           <Route path="/Sales" element={<Sales />} />
           <Route path='/notion' element={<NotionPage />} />
+
         </Routes>
       </main>
       <Sidenavbar />

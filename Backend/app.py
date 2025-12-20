@@ -2,9 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 import base64
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
+
 
 # Jira API base URL format
 JIRA_API_BASE = "https://{domain}/rest/api/3"
@@ -1553,6 +1558,140 @@ def notion_toggle_todo(block_id):
             return jsonify({"success": True, "checked": checked})
         else:
             return jsonify({"success": False, "error": result.get("message")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+# ==================== SALESFORCE API ====================
+
+# Salesforce CLI Connected App (public, works for OAuth Password flow)
+SALESFORCE_CLI_CLIENT_ID = "PlatformCLI"
+
+@app.route('/api/salesforce/connect', methods=['POST'])
+def salesforce_connect():
+    """Connect to Salesforce using OAuth REST API (Password Grant)"""
+    try:
+        data = request.json or {}
+        username = data.get('username')
+        password = data.get('password')
+        security_token = data.get('security_token', '')
+        
+        if not username or not password:
+            return jsonify({"error": "Username and password required"}), 400
+        
+        # OAuth Password Grant flow
+        login_url = "https://login.salesforce.com/services/oauth2/token"
+        
+        payload = {
+            'grant_type': 'password',
+            'client_id': SALESFORCE_CLI_CLIENT_ID,
+            'username': username,
+            'password': password + security_token
+        }
+        
+        response = requests.post(login_url, data=payload)
+        result = response.json()
+        
+        if response.status_code == 200 and 'access_token' in result:
+            return jsonify({
+                "success": True,
+                "access_token": result.get("access_token"),
+                "instance_url": result.get("instance_url"),
+                "username": username
+            })
+        else:
+            error_msg = result.get("error_description", result.get("error", "Authentication failed"))
+            return jsonify({"success": False, "error": error_msg}), 200
+        
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)}), 200
+
+
+
+@app.route('/api/salesforce/cases', methods=['POST'])
+def salesforce_get_cases():
+    """Get Cases (support tickets) from Salesforce"""
+    try:
+        data = request.json or {}
+        access_token = data.get('access_token')
+        instance_url = data.get('instance_url')
+        
+        if not access_token or not instance_url:
+            return jsonify({"error": "Access token and instance URL required"}), 400
+        
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        # SOQL query to get Cases
+        query = "SELECT Id, CaseNumber, Subject, Description, Status, Priority, Origin, CreatedDate FROM Case ORDER BY CreatedDate DESC LIMIT 50"
+        
+        response = requests.get(
+            f"{instance_url}/services/data/v58.0/query",
+            headers=headers,
+            params={"q": query}
+        )
+        result = response.json()
+        
+        if response.status_code == 200:
+            cases = []
+            for record in result.get("records", []):
+                cases.append({
+                    "id": record.get("Id"),
+                    "caseNumber": record.get("CaseNumber"),
+                    "subject": record.get("Subject"),
+                    "description": record.get("Description"),
+                    "status": record.get("Status"),
+                    "priority": record.get("Priority"),
+                    "origin": record.get("Origin"),
+                    "createdDate": record.get("CreatedDate")
+                })
+            return jsonify({"success": True, "cases": cases, "totalSize": result.get("totalSize", 0)})
+        else:
+            return jsonify({"success": False, "cases": [], "error": result.get("message", "Failed to fetch cases")}), 200
+    except Exception as e:
+        return jsonify({"success": False, "cases": [], "error": str(e)}), 200
+
+
+@app.route('/api/salesforce/cases/create', methods=['POST'])
+def salesforce_create_case():
+    """Create a new Case in Salesforce"""
+    try:
+        data = request.json or {}
+        access_token = data.get('access_token')
+        instance_url = data.get('instance_url')
+        subject = data.get('subject')
+        description = data.get('description', '')
+        priority = data.get('priority', 'Medium')
+        origin = data.get('origin', 'Web')
+        
+        if not access_token or not instance_url or not subject:
+            return jsonify({"error": "Access token, instance URL, and subject required"}), 400
+        
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "Content-Type": "application/json"
+        }
+        
+        case_data = {
+            "Subject": subject,
+            "Description": description,
+            "Priority": priority,
+            "Origin": origin
+        }
+        
+        response = requests.post(
+            f"{instance_url}/services/data/v58.0/sobjects/Case",
+            headers=headers,
+            json=case_data
+        )
+        result = response.json()
+        
+        if response.status_code == 201:
+            return jsonify({"success": True, "id": result.get("id")})
+        else:
+            return jsonify({"success": False, "error": result.get("message", "Failed to create case")}), 200
     except Exception as e:
         return jsonify({"success": False, "error": str(e)}), 200
 
