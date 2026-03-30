@@ -11,10 +11,9 @@ track usage, and configure integrations — all from a single portal.
 
 ## 🛠️ Tech Stack
 - **Frontend:** React.js + Tailwind CSS
-- **Backend:** Node.js + Express
-- **Database:** MongoDB / Firebase
+- **Database:** Firebase
 - **Auth:** JWT Authentication
-- **Deployment:** Vercel / VPS
+- **Deployment:** VPS
 
 ## ✨ Features
 - Integration marketplace UI
